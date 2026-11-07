@@ -1,0 +1,1353 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local RIGHTS = "MAX"
+local VERSION = "v3.0"
+local AUTHOR = "MAX"
+
+local Themes = {
+    Midnight = {
+        Background = Color3.fromRGB(18, 18, 24),
+        Surface = Color3.fromRGB(26, 26, 34),
+        SurfaceAlt = Color3.fromRGB(36, 36, 48),
+        Accent = Color3.fromRGB(138, 92, 255),
+        AccentSoft = Color3.fromRGB(88, 62, 175),
+        Text = Color3.fromRGB(240, 240, 250),
+        TextDim = Color3.fromRGB(160, 160, 180),
+        Stroke = Color3.fromRGB(55, 55, 75),
+        Success = Color3.fromRGB(80, 200, 140),
+        Error = Color3.fromRGB(230, 80, 100),
+        Warning = Color3.fromRGB(240, 190, 80),
+        Info = Color3.fromRGB(100, 160, 240),
+    },
+    Sakura = {
+        Background = Color3.fromRGB(24, 18, 22),
+        Surface = Color3.fromRGB(34, 26, 32),
+        SurfaceAlt = Color3.fromRGB(46, 34, 42),
+        Accent = Color3.fromRGB(255, 140, 180),
+        AccentSoft = Color3.fromRGB(180, 100, 130),
+        Text = Color3.fromRGB(250, 240, 245),
+        TextDim = Color3.fromRGB(200, 170, 185),
+        Stroke = Color3.fromRGB(80, 60, 70),
+        Success = Color3.fromRGB(120, 220, 160),
+        Error = Color3.fromRGB(240, 100, 120),
+        Warning = Color3.fromRGB(250, 200, 120),
+        Info = Color3.fromRGB(140, 180, 240),
+    },
+    Cyber = {
+        Background = Color3.fromRGB(10, 16, 22),
+        Surface = Color3.fromRGB(16, 24, 32),
+        SurfaceAlt = Color3.fromRGB(24, 36, 46),
+        Accent = Color3.fromRGB(0, 220, 200),
+        AccentSoft = Color3.fromRGB(0, 150, 140),
+        Text = Color3.fromRGB(230, 250, 250),
+        TextDim = Color3.fromRGB(150, 180, 185),
+        Stroke = Color3.fromRGB(40, 70, 80),
+        Success = Color3.fromRGB(80, 230, 160),
+        Error = Color3.fromRGB(255, 90, 110),
+        Warning = Color3.fromRGB(240, 210, 80),
+        Info = Color3.fromRGB(80, 180, 240),
+    },
+    Mono = {
+        Background = Color3.fromRGB(14, 14, 14),
+        Surface = Color3.fromRGB(22, 22, 22),
+        SurfaceAlt = Color3.fromRGB(34, 34, 34),
+        Accent = Color3.fromRGB(220, 220, 220),
+        AccentSoft = Color3.fromRGB(140, 140, 140),
+        Text = Color3.fromRGB(240, 240, 240),
+        TextDim = Color3.fromRGB(150, 150, 150),
+        Stroke = Color3.fromRGB(60, 60, 60),
+        Success = Color3.fromRGB(160, 220, 160),
+        Error = Color3.fromRGB(220, 120, 120),
+        Warning = Color3.fromRGB(220, 200, 120),
+        Info = Color3.fromRGB(140, 180, 220),
+    },
+}
+
+local function create(className, props)
+    local inst = Instance.new(className)
+    for k, v in pairs(props or {}) do
+        inst[k] = v
+    end
+    return inst
+end
+
+local function corner(inst, radius)
+    create("UICorner", { CornerRadius = UDim.new(0, radius or 6), Parent = inst })
+end
+
+local function stroke(inst, color, thickness, transparency)
+    return create("UIStroke", {
+        Color = color or Color3.fromRGB(55, 55, 75),
+        Thickness = thickness or 1,
+        Transparency = transparency or 0,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Parent = inst,
+    })
+end
+
+local function pad(inst, t, b, l, r)
+    create("UIPadding", {
+        PaddingTop = UDim.new(0, t or 0),
+        PaddingBottom = UDim.new(0, b or 0),
+        PaddingLeft = UDim.new(0, l or 0),
+        PaddingRight = UDim.new(0, r or 0),
+        Parent = inst,
+    })
+end
+
+local function list(inst, dir, spacing)
+    create("UIListLayout", {
+        FillDirection = dir or Enum.FillDirection.Vertical,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, spacing or 6),
+        Parent = inst,
+    })
+end
+
+local function quickTween(inst, props, duration)
+    if not inst or not inst.Parent then return end
+    local info = TweenInfo.new(duration or 0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    TweenService:Create(inst, info, props):Play()
+end
+
+local NotificationType = {
+    Success = "Success",
+    Error = "Error",
+    Warning = "Warning",
+    Info = "Info",
+}
+
+local NyxUI = {}
+NyxUI.__index = NyxUI
+
+function NyxUI.new(opts)
+    opts = opts or {}
+    local self = setmetatable({}, NyxUI)
+
+    self.ThemeName = opts.Theme or "Midnight"
+    self.Theme = Themes[self.ThemeName] or Themes.Midnight
+    self.Title = opts.Title or "NyxUI Lite"
+    self.Subtitle = opts.Subtitle or (VERSION .. " — " .. RIGHTS)
+    self.Width = opts.Width or 520
+    self.Height = opts.Height or 400
+    self.SaveName = opts.SaveName or "NyxUI_Config"
+    self.Tabs = {}
+    self.ActiveTab = nil
+    self.Connections = {}
+    self.Widgets = {}
+    self._config = {}
+    self._notifications = {}
+    self._notificationOrder = 0
+
+    self:_loadConfig()
+    self:_buildGui()
+    self:_buildWindow()
+    self:_buildTabsBar()
+    self:_buildContainer()
+    self:_applyTheme()
+
+    _G.NyxUI = self
+    _G.NyxUI_RIGHTS = RIGHTS
+    _G.NyxUI_VERSION = VERSION
+
+    return self
+end
+
+function NyxUI:_buildGui()
+    if self.Gui and self.Gui.Parent then
+        self.Gui:Destroy()
+    end
+    local parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
+    self.Gui = create("ScreenGui", {
+        Name = "NyxUILite_MAX",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset = true,
+        DisplayOrder = 999,
+        Parent = parent,
+    })
+end
+
+function NyxUI:_buildWindow()
+    local win = create("Frame", {
+        Name = "Window",
+        Size = UDim2.fromOffset(self.Width, self.Height),
+        Position = UDim2.new(0.5, -self.Width / 2, 0.5, -self.Height / 2),
+        BackgroundColor3 = self.Theme.Background,
+        BorderSizePixel = 0,
+        Parent = self.Gui,
+    })
+    corner(win, 10)
+    stroke(win, self.Theme.Stroke, 1, 0.2)
+    self.Window = win
+
+    local titleBar = create("Frame", {
+        Name = "TitleBar",
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Parent = win,
+    })
+    self.TitleBar = titleBar
+
+    local titleLbl = create("TextLabel", {
+        Name = "Title",
+        Text = self.Title,
+        Font = Enum.Font.GothamBold,
+        TextSize = 15,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Position = UDim2.fromOffset(14, 0),
+        Size = UDim2.new(1, -80, 1, 0),
+        Parent = titleBar,
+    })
+    self.TitleLabel = titleLbl
+
+    local subLbl = create("TextLabel", {
+        Name = "Subtitle",
+        Text = self.Subtitle,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Position = UDim2.fromOffset(14, 20),
+        Size = UDim2.new(1, -80, 0, 14),
+        Parent = titleBar,
+    })
+    self.SubtitleLabel = subLbl
+
+    local closeBtn = create("TextButton", {
+        Name = "Close",
+        Text = "✕",
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -36, 0, 10),
+        Size = UDim2.fromOffset(26, 26),
+        AutoButtonColor = false,
+        Parent = titleBar,
+    })
+    corner(closeBtn, 6)
+    self.CloseButton = closeBtn
+
+    closeBtn.MouseButton1Click:Connect(function()
+        self:Destroy()
+    end)
+
+    local minBtn = create("TextButton", {
+        Name = "Minimize",
+        Text = "–",
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -68, 0, 10),
+        Size = UDim2.fromOffset(26, 26),
+        AutoButtonColor = false,
+        Parent = titleBar,
+    })
+    corner(minBtn, 6)
+    self.MinButton = minBtn
+
+    local minimized = false
+    minBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        local targetSize = minimized
+            and UDim2.fromOffset(self.Width, 40)
+            or UDim2.fromOffset(self.Width, self.Height)
+        quickTween(win, { Size = targetSize }, 0.16)
+        self.TabsBar.Visible = not minimized
+        self.Container.Visible = not minimized
+        self.Footer.Visible = not minimized
+    end)
+
+    local dragging, dragStart, startPos
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = win.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    local dragConn = UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            win.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    table.insert(self.Connections, dragConn)
+
+    local footer = create("TextLabel", {
+        Name = "Footer",
+        Text = "حقوق " .. RIGHTS .. " © " .. AUTHOR .. " — " .. VERSION,
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        Size = UDim2.new(1, -20, 0, 16),
+        Position = UDim2.new(0, 10, 1, -20),
+        Parent = win,
+    })
+    self.Footer = footer
+end
+
+function NyxUI:_buildTabsBar()
+    local bar = create("Frame", {
+        Name = "TabsBar",
+        Size = UDim2.new(1, -20, 0, 32),
+        Position = UDim2.fromOffset(10, 46),
+        BackgroundColor3 = self.Theme.Surface,
+        BorderSizePixel = 0,
+        Parent = self.Window,
+    })
+    corner(bar, 8)
+    self.TabsBar = bar
+
+    list(bar, Enum.FillDirection.Horizontal, 4)
+    pad(bar, 0, 0, 8, 8)
+
+    local indicator = create("Frame", {
+        Name = "Indicator",
+        Size = UDim2.new(0, 0, 0, 2),
+        Position = UDim2.new(0, 8, 1, -4),
+        BackgroundColor3 = self.Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = bar,
+    })
+    corner(indicator, 2)
+    self.TabIndicator = indicator
+end
+
+function NyxUI:_buildContainer()
+    local container = create("Frame", {
+        Name = "Container",
+        Size = UDim2.new(1, -20, 1, -108),
+        Position = UDim2.fromOffset(10, 86),
+        BackgroundTransparency = 1,
+        Parent = self.Window,
+    })
+    self.Container = container
+
+    local scroll = create("ScrollingFrame", {
+        Name = "Scroll",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = self.Theme.Accent,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Parent = container,
+    })
+    self.Scroll = scroll
+
+    list(scroll, Enum.FillDirection.Vertical, 8)
+    pad(scroll, 4, 4, 2, 6)
+end
+
+function NyxUI:_applyTheme()
+    local t = self.Theme
+    self.Window.BackgroundColor3 = t.Background
+    self.TabsBar.BackgroundColor3 = t.Surface
+    self.TitleLabel.TextColor3 = t.Text
+    self.SubtitleLabel.TextColor3 = t.TextDim
+    self.CloseButton.BackgroundColor3 = t.SurfaceAlt
+    self.CloseButton.TextColor3 = t.TextDim
+    self.MinButton.BackgroundColor3 = t.SurfaceAlt
+    self.MinButton.TextColor3 = t.TextDim
+    self.TabIndicator.BackgroundColor3 = t.Accent
+    self.Scroll.ScrollBarImageColor3 = t.Accent
+    self.Footer.TextColor3 = t.TextDim
+
+    for _, d in ipairs(self.Window:GetDescendants()) do
+        if d:IsA("UIStroke") then
+            d.Color = t.Stroke
+        end
+    end
+
+    for _, tab in ipairs(self.Tabs) do
+        if tab.Button then
+            local active = (self.ActiveTab == tab)
+            tab.Button.BackgroundColor3 = active and t.SurfaceAlt or t.Surface
+            tab.Button.TextColor3 = active and t.Text or t.TextDim
+        end
+    end
+
+    for _, notif in ipairs(self._notifications) do
+        if notif.Frame and notif.Frame.Parent then
+            notif.Frame.BackgroundColor3 = t.Surface
+        end
+    end
+end
+
+function NyxUI:AddTab(name)
+    local tab = { Name = name, Built = false }
+
+    local btn = create("TextButton", {
+        Name = "Tab_" .. name,
+        Text = name,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundColor3 = self.Theme.Surface,
+        BorderSizePixel = 0,
+        Size = UDim2.fromOffset(72, 24),
+        AutoButtonColor = false,
+        Parent = self.TabsBar,
+    })
+    corner(btn, 6)
+
+    btn.MouseEnter:Connect(function()
+        if self.ActiveTab ~= tab then
+            btn.BackgroundColor3 = self.Theme.SurfaceAlt
+        end
+    end)
+    btn.MouseLeave:Connect(function()
+        if self.ActiveTab ~= tab then
+            btn.BackgroundColor3 = self.Theme.Surface
+        end
+    end)
+    btn.MouseButton1Click:Connect(function()
+        self:SelectTab(tab)
+    end)
+
+    tab.Button = btn
+    table.insert(self.Tabs, tab)
+
+    if not self.ActiveTab then
+        self:SelectTab(tab)
+    end
+
+    return tab
+end
+
+function NyxUI:SelectTab(tab)
+    if self.ActiveTab == tab then return end
+    self.ActiveTab = tab
+
+    for _, t in ipairs(self.Tabs) do
+        local active = (t == tab)
+        t.Button.BackgroundColor3 = active and self.Theme.SurfaceAlt or self.Theme.Surface
+        t.Button.TextColor3 = active and self.Theme.Text or self.Theme.TextDim
+    end
+
+    local btn = tab.Button
+    local targetPos = UDim2.new(
+        0, btn.AbsolutePosition.X - self.TabsBar.AbsolutePosition.X,
+        1, -4
+    )
+    local targetSize = UDim2.new(0, btn.AbsoluteSize.X, 0, 2)
+    quickTween(self.TabIndicator, { Position = targetPos, Size = targetSize }, 0.14)
+
+    for _, child in ipairs(self.Scroll:GetChildren()) do
+        if child:IsA("Frame") and child.Name == "TabContent" then
+            child.Visible = false
+        end
+    end
+
+    if not tab.Built then
+        local content = create("Frame", {
+            Name = "TabContent",
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1,
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = self.Scroll,
+        })
+        list(content, Enum.FillDirection.Vertical, 8)
+        tab.Content = content
+        tab.Built = true
+    end
+    tab.Content.Visible = true
+end
+
+function NyxUI:AddSection(tab, title)
+    local section = create("Frame", {
+        Name = "Section",
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundColor3 = self.Theme.Surface,
+        BorderSizePixel = 0,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = tab.Content,
+    })
+    corner(section, 8)
+    stroke(section, self.Theme.Stroke, 1, 0.3)
+    list(section, Enum.FillDirection.Vertical, 6)
+    pad(section, 8, 8, 8, 8)
+
+    if title then
+        local lbl = create("TextLabel", {
+            Name = "Title",
+            Text = title,
+            Font = Enum.Font.GothamBold,
+            TextSize = 12,
+            TextColor3 = self.Theme.Text,
+            BackgroundTransparency = 1,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Size = UDim2.new(1, 0, 0, 16),
+            Parent = section,
+        })
+        lbl.LayoutOrder = -1
+    end
+
+    return section
+end
+
+function NyxUI:AddButton(parent, text, callback)
+    local btn = create("TextButton", {
+        Name = "Button",
+        Text = text,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 28),
+        AutoButtonColor = false,
+        Parent = parent,
+    })
+    corner(btn, 6)
+
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = self.Theme.AccentSoft
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = self.Theme.SurfaceAlt
+    end)
+    btn.MouseButton1Click:Connect(function()
+        btn.BackgroundColor3 = self.Theme.Accent
+        task.delay(0.1, function()
+            if btn and btn.Parent then
+                btn.BackgroundColor3 = self.Theme.SurfaceAlt
+            end
+        end)
+        if callback then
+            local ok, err = pcall(callback)
+            if not ok then
+                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+            end
+        end
+    end)
+
+    return btn
+end
+
+function NyxUI:AddToggle(parent, text, default, callback)
+    local row = create("Frame", {
+        Name = "ToggleRow",
+        Size = UDim2.new(1, 0, 0, 26),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+
+    create("TextLabel", {
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Size = UDim2.new(1, -50, 1, 0),
+        Parent = row,
+    })
+
+    local switch = create("Frame", {
+        Name = "Switch",
+        Size = UDim2.fromOffset(36, 18),
+        Position = UDim2.new(1, -36, 0.5, -9),
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Parent = row,
+    })
+    corner(switch, 9)
+
+    local knob = create("Frame", {
+        Name = "Knob",
+        Size = UDim2.fromOffset(14, 14),
+        Position = UDim2.fromOffset(2, 2),
+        BackgroundColor3 = self.Theme.Text,
+        BorderSizePixel = 0,
+        Parent = switch,
+    })
+    corner(knob, 7)
+
+    local state = default or false
+    local function update()
+        quickTween(knob, { Position = state and UDim2.fromOffset(20, 2) or UDim2.fromOffset(2, 2) }, 0.12)
+        switch.BackgroundColor3 = state and self.Theme.Accent or self.Theme.SurfaceAlt
+    end
+    update()
+
+    local btn = create("TextButton", {
+        Text = "",
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        Parent = switch,
+    })
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        update()
+        if callback then
+            local ok, err = pcall(callback, state)
+            if not ok then
+                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+            end
+        end
+        self._config[text] = state
+    end)
+
+    self.Widgets[text] = {
+        Type = "Toggle",
+        Get = function() return state end,
+        Set = function(v) state = v; update() end,
+    }
+
+    return {
+        Set = function(_, v)
+            state = v
+            update()
+            if callback then pcall(callback, state) end
+        end,
+        Get = function() return state end,
+    }
+end
+
+function NyxUI:AddSlider(parent, text, min, max, default, callback)
+    local row = create("Frame", {
+        Name = "SliderRow",
+        Size = UDim2.new(1, 0, 0, 42),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+
+    create("TextLabel", {
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Size = UDim2.new(1, -50, 0, 16),
+        Parent = row,
+    })
+
+    local valueLbl = create("TextLabel", {
+        Text = tostring(default or min),
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = self.Theme.Accent,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Size = UDim2.new(0, 50, 0, 16),
+        Position = UDim2.new(1, -50, 0, 0),
+        Parent = row,
+    })
+
+    local bar = create("Frame", {
+        Name = "Bar",
+        Size = UDim2.new(1, 0, 0, 5),
+        Position = UDim2.new(0, 0, 0, 26),
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Parent = row,
+    })
+    corner(bar, 2)
+
+    local fill = create("Frame", {
+        Name = "Fill",
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = self.Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = bar,
+    })
+    corner(fill, 2)
+
+    local knob = create("Frame", {
+        Name = "Knob",
+        Size = UDim2.fromOffset(12, 12),
+        Position = UDim2.new(0, -6, 0.5, -6),
+        BackgroundColor3 = self.Theme.Text,
+        BorderSizePixel = 0,
+        Parent = fill,
+    })
+    corner(knob, 6)
+
+    local value = default or min
+    local function setValue(v, fire)
+        value = math.clamp(v, min, max)
+        local alpha = (value - min) / (max - min)
+        fill.Size = UDim2.new(alpha, 0, 1, 0)
+        valueLbl.Text = tostring(math.floor(value))
+        if fire and callback then
+            local ok, err = pcall(callback, value)
+            if not ok then
+                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+            end
+        end
+    end
+    setValue(value, false)
+
+    local dragging = false
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+        end
+    end)
+    local endConn = UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    local moveConn = UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch) then
+            local rel = (input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X
+            setValue(min + (max - min) * math.clamp(rel, 0, 1), true)
+            self._config[text] = value
+        end
+    end)
+    table.insert(self.Connections, endConn)
+    table.insert(self.Connections, moveConn)
+
+    self.Widgets[text] = {
+        Type = "Slider",
+        Get = function() return value end,
+        Set = function(v) setValue(v, true) end,
+    }
+
+    return {
+        Set = function(_, v) setValue(v, true) end,
+        Get = function() return value end,
+    }
+end
+
+function NyxUI:AddDropdown(parent, text, options, default, callback)
+    local row = create("Frame", {
+        Name = "DropdownRow",
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1,
+        Parent = parent,
+        ClipsDescendants = false,
+    })
+
+    create("TextLabel", {
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Size = UDim2.new(0.5, 0, 1, 0),
+        Parent = row,
+    })
+
+    local btn = create("TextButton", {
+        Text = default or "اختر...",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = self.Theme.Text,
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0.5, -8, 1, 0),
+        Position = UDim2.new(0.5, 8, 0, 0),
+        AutoButtonColor = false,
+        Parent = row,
+    })
+    corner(btn, 5)
+
+    local listFrame = create("Frame", {
+        Name = "List",
+        Size = UDim2.new(0.5, -8, 0, 0),
+        Position = UDim2.new(0.5, 8, 1, 3),
+        BackgroundColor3 = self.Theme.Surface,
+        BorderSizePixel = 0,
+        Visible = false,
+        ZIndex = 50,
+        Parent = row,
+    })
+    corner(listFrame, 5)
+    stroke(listFrame, self.Theme.Stroke, 1, 0.2)
+    list(listFrame, Enum.FillDirection.Vertical, 2)
+    pad(listFrame, 4, 4, 4, 4)
+
+    local current = default
+    local open = false
+
+    for _, opt in ipairs(options) do
+        local optBtn = create("TextButton", {
+            Text = tostring(opt),
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextColor3 = self.Theme.Text,
+            BackgroundColor3 = self.Theme.SurfaceAlt,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Size = UDim2.new(1, 0, 0, 22),
+            AutoButtonColor = false,
+            Parent = listFrame,
+        })
+        corner(optBtn, 4)
+        optBtn.MouseButton1Click:Connect(function()
+            current = opt
+            btn.Text = tostring(opt)
+            open = false
+            listFrame.Visible = false
+            listFrame.Size = UDim2.new(0.5, -8, 0, 0)
+            if callback then
+                local ok, err = pcall(callback, opt)
+                if not ok then
+                    self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+                end
+            end
+            self._config[text] = opt
+        end)
+    end
+
+    local function refreshListSize()
+        listFrame.Size = UDim2.new(0.5, -8, 0, #options * 24 + 8)
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        open = not open
+        listFrame.Visible = open
+        if open then refreshListSize() end
+    end)
+
+    self.Widgets[text] = {
+        Type = "Dropdown",
+        Get = function() return current end,
+        Set = function(v)
+            for _, opt in ipairs(options) do
+                if tostring(opt) == tostring(v) then
+                    current = opt
+                    btn.Text = tostring(opt)
+                    if callback then pcall(callback, opt) end
+                    return
+                end
+            end
+        end,
+    }
+
+    return {
+        Set = function(_, v)
+            for _, opt in ipairs(options) do
+                if tostring(opt) == tostring(v) then
+                    current = opt
+                    btn.Text = tostring(opt)
+                    if callback then pcall(callback, opt) end
+                    return
+                end
+            end
+        end,
+        Get = function() return current end,
+    }
+end
+
+function NyxUI:AddTextBox(parent, placeholder, default, callback)
+    local box = create("TextBox", {
+        Text = default or "",
+        PlaceholderText = placeholder or "...",
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        PlaceholderColor3 = self.Theme.TextDim,
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        ClearTextOnFocus = false,
+        Size = UDim2.new(1, 0, 0, 26),
+        Parent = parent,
+    })
+    corner(box, 6)
+    box.FocusLost:Connect(function()
+        if callback then
+            local ok, err = pcall(callback, box.Text)
+            if not ok then
+                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+            end
+        end
+    end)
+    return box
+end
+
+function NyxUI:AddColorPicker(parent, text, default, callback)
+    local row = create("Frame", {
+        Name = "ColorRow",
+        Size = UDim2.new(1, 0, 0, 26),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+
+    create("TextLabel", {
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Size = UDim2.new(1, -40, 1, 0),
+        Parent = row,
+    })
+
+    local swatch = create("TextButton", {
+        Text = "",
+        BackgroundColor3 = default or Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        Size = UDim2.fromOffset(26, 18),
+        Position = UDim2.new(1, -26, 0.5, -9),
+        AutoButtonColor = false,
+        Parent = row,
+    })
+    corner(swatch, 5)
+
+    local current = default or Color3.fromRGB(255, 255, 255)
+    local picker = create("Frame", {
+        Name = "Picker",
+        Size = UDim2.fromOffset(160, 90),
+        Position = UDim2.new(1, -170, 0, 30),
+        BackgroundColor3 = self.Theme.Surface,
+        BorderSizePixel = 0,
+        Visible = false,
+        ZIndex = 60,
+        Parent = row,
+    })
+    corner(picker, 6)
+    stroke(picker, self.Theme.Stroke, 1, 0.2)
+    pad(picker, 8, 8, 8, 8)
+
+    local hueBar = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 12),
+        BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+        BorderSizePixel = 0,
+        Parent = picker,
+    })
+    corner(hueBar, 3)
+    local hueFill = create("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        Parent = hueBar,
+    })
+
+    local svBar = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 12),
+        Position = UDim2.fromOffset(0, 18),
+        BackgroundColor3 = current,
+        BorderSizePixel = 0,
+        Parent = picker,
+    })
+    corner(svBar, 3)
+
+    local hue = 0.75
+    local sat = 1
+    local val = 1
+    local function updateColor(fire)
+        current = Color3.fromHSV(hue, sat, val)
+        swatch.BackgroundColor3 = current
+        svBar.BackgroundColor3 = current
+        hueFill.Size = UDim2.new(hue, 0, 1, 0)
+        if fire and callback then
+            local ok, err = pcall(callback, current)
+            if not ok then
+                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+            end
+        end
+        self._config[text] = { current.R, current.G, current.B }
+    end
+
+    local hDrag = false
+    hueBar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            hDrag = true
+        end
+    end)
+    local hEnd = UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            hDrag = false
+        end
+    end)
+    local hMove = UserInputService.InputChanged:Connect(function(i)
+        if hDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local rel = (i.Position.X - hueBar.AbsolutePosition.X) / hueBar.AbsoluteSize.X
+            hue = math.clamp(rel, 0, 1)
+            updateColor(true)
+        end
+    end)
+    table.insert(self.Connections, hEnd)
+    table.insert(self.Connections, hMove)
+
+    local svDrag = false
+    svBar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            svDrag = true
+        end
+    end)
+    local svEnd = UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            svDrag = false
+        end
+    end)
+    local svMove = UserInputService.InputChanged:Connect(function(i)
+        if svDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local relX = (i.Position.X - svBar.AbsolutePosition.X) / svBar.AbsoluteSize.X
+            local relY = (i.Position.Y - svBar.AbsolutePosition.Y) / svBar.AbsoluteSize.Y
+            sat = math.clamp(relX, 0, 1)
+            val = math.clamp(1 - relY, 0, 1)
+            updateColor(true)
+        end
+    end)
+    table.insert(self.Connections, svEnd)
+    table.insert(self.Connections, svMove)
+
+    swatch.MouseButton1Click:Connect(function()
+        picker.Visible = not picker.Visible
+    end)
+
+    updateColor(false)
+
+    self.Widgets[text] = {
+        Type = "Color",
+        Get = function() return current end,
+        Set = function(c) current = c; updateColor(true) end,
+    }
+
+    return {
+        Set = function(_, c) current = c; updateColor(true) end,
+        Get = function() return current end,
+    }
+end
+
+function NyxUI:AddKeybind(parent, text, defaultKey, callback)
+    local row = create("Frame", {
+        Name = "KeybindRow",
+        Size = UDim2.new(1, 0, 0, 26),
+        BackgroundTransparency = 1,
+        Parent = parent,
+    })
+
+    create("TextLabel", {
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Size = UDim2.new(1, -80, 1, 0),
+        Parent = row,
+    })
+
+    local keyBtn = create("TextButton", {
+        Text = defaultKey and defaultKey.Name or "None",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = self.Theme.Text,
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Size = UDim2.fromOffset(70, 22),
+        Position = UDim2.new(1, -70, 0.5, -11),
+        AutoButtonColor = false,
+        Parent = row,
+    })
+    corner(keyBtn, 5)
+
+    local currentKey = defaultKey
+    local listening = false
+
+    keyBtn.MouseButton1Click:Connect(function()
+        listening = true
+        keyBtn.Text = "..."
+    end)
+
+    local conn = UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if listening then
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                currentKey = input.KeyCode
+                keyBtn.Text = input.KeyCode.Name
+                listening = false
+            end
+            return
+        end
+        if currentKey and input.KeyCode == currentKey then
+            if callback then
+                local ok, err = pcall(callback)
+                if not ok then
+                    self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
+                end
+            end
+        end
+    end)
+    table.insert(self.Connections, conn)
+
+    self.Widgets[text] = {
+        Type = "Keybind",
+        Get = function() return currentKey end,
+    }
+
+    return {
+        Set = function(_, k)
+            currentKey = k
+            keyBtn.Text = k and k.Name or "None"
+        end,
+        Get = function() return currentKey end,
+    }
+end
+
+function NyxUI:_reflowNotifications()
+    local baseY = 16
+    local spacing = 8
+    local index = 0
+    for i = #self._notifications, 1, -1 do
+        local notif = self._notifications[i]
+        if notif.Frame and notif.Frame.Parent then
+            local targetY = baseY + index * (notif.Height + spacing)
+            quickTween(notif.Frame, {
+                Position = UDim2.new(1, -280, 0, targetY),
+            }, 0.14)
+            index = index + 1
+        end
+    end
+end
+
+function NyxUI:Notify(title, message, notifType, duration)
+    notifType = notifType or NotificationType.Info
+    duration = duration or 3
+
+    local color = self.Theme.Info
+    if notifType == NotificationType.Success then color = self.Theme.Success
+    elseif notifType == NotificationType.Error then color = self.Theme.Error
+    elseif notifType == NotificationType.Warning then color = self.Theme.Warning
+    elseif notifType == NotificationType.Info then color = self.Theme.Info
+    end
+
+    local notif = create("Frame", {
+        Name = "Notification",
+        Size = UDim2.fromOffset(260, 0),
+        Position = UDim2.new(1, 20, 0, 16),
+        BackgroundColor3 = self.Theme.Surface,
+        BorderSizePixel = 0,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = self.Gui,
+        ZIndex = 100,
+    })
+    corner(notif, 8)
+    stroke(notif, color, 1, 0.3)
+    pad(notif, 10, 10, 12, 12)
+    list(notif, Enum.FillDirection.Vertical, 4)
+
+    local header = create("Frame", {
+        Name = "Header",
+        Size = UDim2.new(1, 0, 0, 16),
+        BackgroundTransparency = 1,
+        Parent = notif,
+    })
+
+    local dot = create("Frame", {
+        Name = "Dot",
+        Size = UDim2.fromOffset(8, 8),
+        Position = UDim2.new(0, 0, 0.5, -4),
+        BackgroundColor3 = color,
+        BorderSizePixel = 0,
+        Parent = header,
+    })
+    corner(dot, 4)
+
+    create("TextLabel", {
+        Text = title,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = self.Theme.Text,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Position = UDim2.fromOffset(14, 0),
+        Size = UDim2.new(1, -14, 1, 0),
+        Parent = header,
+    })
+
+    create("TextLabel", {
+        Text = message,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = notif,
+    })
+
+    local rights = create("TextLabel", {
+        Text = "حقوق " .. RIGHTS,
+        Font = Enum.Font.Gotham,
+        TextSize = 9,
+        TextColor3 = self.Theme.TextDim,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Size = UDim2.new(1, 0, 0, 10),
+        Parent = notif,
+    })
+
+    local progressBg = create("Frame", {
+        Name = "ProgressBg",
+        Size = UDim2.new(1, 0, 0, 2),
+        BackgroundColor3 = self.Theme.SurfaceAlt,
+        BorderSizePixel = 0,
+        Parent = notif,
+    })
+    corner(progressBg, 2)
+
+    local progressFill = create("Frame", {
+        Name = "ProgressFill",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = color,
+        BorderSizePixel = 0,
+        Parent = progressBg,
+    })
+    corner(progressFill, 2)
+
+    notif.Size = UDim2.fromOffset(260, 0)
+    local absHeight = notif.AbsoluteSize.Y
+    if absHeight <= 0 then
+        absHeight = 80
+    end
+
+    local entry = {
+        Frame = notif,
+        Height = absHeight,
+        Color = color,
+        Id = self._notificationOrder + 1,
+    }
+    self._notificationOrder = self._notificationOrder + 1
+    table.insert(self._notifications, entry)
+
+    self:_reflowNotifications()
+
+    quickTween(progressFill, { Size = UDim2.new(0, 0, 1, 0) }, duration)
+
+    task.delay(duration, function()
+        if notif and notif.Parent then
+            quickTween(notif, { Position = UDim2.new(1, 20, 0, notif.Position.Y.Offset) }, 0.12)
+            task.delay(0.14, function()
+                if notif and notif.Parent then
+                    notif:Destroy()
+                end
+                for i = #self._notifications, 1, -1 do
+                    if self._notifications[i].Frame == notif then
+                        table.remove(self._notifications, i)
+                    end
+                end
+                self:_reflowNotifications()
+            end)
+        end
+    end)
+end
+
+function NyxUI:NotifySuccess(title, message, duration)
+    self:Notify(title, message, NotificationType.Success, duration)
+end
+
+function NyxUI:NotifyError(title, message, duration)
+    self:Notify(title, message, NotificationType.Error, duration)
+end
+
+function NyxUI:NotifyWarning(title, message, duration)
+    self:Notify(title, message, NotificationType.Warning, duration)
+end
+
+function NyxUI:NotifyInfo(title, message, duration)
+    self:Notify(title, message, NotificationType.Info, duration)
+end
+
+function NyxUI:SetTheme(themeName)
+    if not Themes[themeName] then return end
+    self.ThemeName = themeName
+    self.Theme = Themes[themeName]
+    self:_applyTheme()
+end
+
+function NyxUI:_saveConfig()
+    if not writefile or not isfolder then return end
+    local ok, encoded = pcall(function()
+        return HttpService:JSONEncode(self._config or {})
+    end)
+    if not ok then return end
+    if not isfolder("NyxUI") then
+        pcall(makefolder, "NyxUI")
+    end
+    pcall(writefile, "NyxUI/" .. self.SaveName .. ".json", encoded)
+end
+
+function NyxUI:_loadConfig()
+    if not readfile or not isfile then return end
+    local path = "NyxUI/" .. self.SaveName .. ".json"
+    if isfile(path) then
+        local ok, data = pcall(function()
+            return HttpService:JSONDecode(readfile(path))
+        end)
+        if ok and type(data) == "table" then
+            self._config = data
+        end
+    end
+end
+
+function NyxUI:Save()
+    self:_saveConfig()
+    self:NotifySuccess("NyxUI", "تم حفظ الإعدادات", 2)
+end
+
+function NyxUI:Load()
+    self:_loadConfig()
+    for name, widget in pairs(self.Widgets) do
+        local stored = self._config[name]
+        if stored ~= nil then
+            if widget.Type == "Toggle" and type(stored) == "boolean" then
+                widget.Set(stored)
+            elseif widget.Type == "Slider" and type(stored) == "number" then
+                widget.Set(stored)
+            elseif widget.Type == "Dropdown" then
+                widget.Set(stored)
+            elseif widget.Type == "Color" and type(stored) == "table" then
+                widget.Set(Color3.new(stored[1], stored[2], stored[3]))
+            end
+        end
+    end
+    self:NotifySuccess("NyxUI", "تم تحميل الإعدادات", 2)
+end
+
+function NyxUI:Destroy()
+    for _, conn in ipairs(self.Connections) do
+        if conn and conn.Disconnect then
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+    self.Connections = {}
+    if self.Gui and self.Gui.Parent then
+        self.Gui:Destroy()
+    end
+end
+
+return NyxUI
