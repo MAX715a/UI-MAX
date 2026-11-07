@@ -1,0 +1,275 @@
+--[[
+    ================================================================
+    ✨ MAX Custom UI Framework / Template ✨
+    ================================================================
+    * Reusable Roblox Script UI Library
+    * Dark Cyberpunk Theme (Purple / Neon Cyan)
+    * Mobile & PC Adaptive
+    ================================================================
+]]
+
+local UILibrary = {}
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LP = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
+
+local function getParent()
+    if type(gethui) == "function" then
+        local ok, h = pcall(gethui)
+        if ok and h then return h end
+    end
+    local ok, cg = pcall(function() return CoreGui end)
+    if ok and cg then return cg end
+    return LP:WaitForChild("PlayerGui")
+end
+
+function UILibrary:CreateWindow(options)
+    options = options or {}
+    local hubTitle = options.Title or "CUSTOM HUB"
+    local hubSubTitle = options.SubTitle or "Version 1.0"
+    local toggleKey = options.ToggleKey or Enum.KeyCode.K
+    local logoId = options.LogoID or "rbxassetid://107017439426055"
+
+    local IsTouchDevice = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+    local MAIN_SIZE = IsTouchDevice and UDim2.fromOffset(480, 360) or UDim2.fromOffset(640, 470)
+
+    -- Cleanup Previous UI
+    local parentGui = getParent()
+    for _, c in ipairs(parentGui:GetChildren()) do
+        if c.Name == "MAX_Template_UI" then c:Destroy() end
+    end
+
+    local mainGui = Instance.new("ScreenGui")
+    mainGui.Name = "MAX_Template_UI"
+    mainGui.ResetOnSpawn = false
+    mainGui.IgnoreGuiInset = true
+    mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    mainGui.Parent = parentGui
+
+    local mainFrame = Instance.new("Frame", mainGui)
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = MAIN_SIZE
+    mainFrame.Position = UDim2.new(0.5, -MAIN_SIZE.X.Offset/2, 0.42, -MAIN_SIZE.Y.Offset/2)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 18)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.ClipsDescendants = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 18)
+
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Color = Color3.fromRGB(124, 58, 237)
+    mainStroke.Thickness = 2.5
+    mainStroke.Transparency = 0.15
+
+    -- Header
+    local header = Instance.new("Frame", mainFrame)
+    header.Size = UDim2.new(1, 0, 0, IsTouchDevice and 46 or 54)
+    header.BackgroundColor3 = Color3.fromRGB(16, 12, 28)
+    header.BorderSizePixel = 0
+    header.ZIndex = 2
+    Instance.new("UICorner", header).CornerRadius = UDim.new(0, 18)
+
+    local titleLbl = Instance.new("TextLabel", header)
+    titleLbl.Position = UDim2.fromOffset(16, IsTouchDevice and 5 or 8)
+    titleLbl.Size = UDim2.new(0, 210, 0, IsTouchDevice and 16 or 19)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = hubTitle
+    titleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = IsTouchDevice and 13 or 16
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local subTitleLbl = Instance.new("TextLabel", header)
+    subTitleLbl.Position = UDim2.fromOffset(16, IsTouchDevice and 23 or 30)
+    subTitleLbl.Size = UDim2.new(0, 210, 0, 14)
+    subTitleLbl.BackgroundTransparency = 1
+    subTitleLbl.Text = hubSubTitle
+    subTitleLbl.TextColor3 = Color3.fromRGB(0, 240, 255)
+    subTitleLbl.Font = Enum.Font.GothamMedium
+    subTitleLbl.TextSize = IsTouchDevice and 8 or 10
+    subTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.fromOffset(IsTouchDevice and 24 or 28, IsTouchDevice and 24 or 28)
+    closeBtn.Position = UDim2.new(1, IsTouchDevice and -30 or -34, 0, IsTouchDevice and 10 or 12)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(220, 38, 38)
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = IsTouchDevice and 10 or 12
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+
+    local openBtn = Instance.new("ImageButton", mainGui)
+    openBtn.Name = "MAX_OpenBtn"
+    openBtn.Size = UDim2.fromOffset(IsTouchDevice and 46 or 52, IsTouchDevice and 46 or 52)
+    openBtn.Position = UDim2.new(0.02, 0, 0.2, 0)
+    openBtn.BackgroundColor3 = Color3.fromRGB(16, 12, 28)
+    openBtn.Image = logoId
+    openBtn.Visible = false
+    openBtn.Active = true
+    openBtn.Draggable = true
+    Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
+    local openStroke = Instance.new("UIStroke", openBtn)
+    openStroke.Color = Color3.fromRGB(124, 58, 237)
+    openStroke.Thickness = 2.5
+
+    local function toggleUI()
+        mainFrame.Visible = not mainFrame.Visible
+        openBtn.Visible = not mainFrame.Visible
+    end
+    closeBtn.MouseButton1Click:Connect(toggleUI)
+    openBtn.MouseButton1Click:Connect(toggleUI)
+
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if not gp and input.KeyCode == toggleKey then toggleUI() end
+    end)
+
+    -- Sidebar / Nav
+    local NavWidth = IsTouchDevice and 125 or 150
+    local NavBar = Instance.new("Frame", mainFrame)
+    NavBar.Size = UDim2.new(0, NavWidth, 1, IsTouchDevice and -56 or -66)
+    NavBar.Position = UDim2.new(0, 8, 0, IsTouchDevice and 50 or 60)
+    NavBar.BackgroundColor3 = Color3.fromRGB(16, 12, 28)
+    NavBar.BorderSizePixel = 0
+    NavBar.ZIndex = 2
+    Instance.new("UICorner", NavBar).CornerRadius = UDim.new(0, 12)
+
+    local PagesFolder = Instance.new("Frame", mainFrame)
+    PagesFolder.Size = UDim2.new(1, -NavWidth - 20, 1, IsTouchDevice and -56 or -66)
+    PagesFolder.Position = UDim2.new(0, NavWidth + 14, 0, IsTouchDevice and 50 or 60)
+    PagesFolder.BackgroundTransparency = 1
+    PagesFolder.ZIndex = 2
+
+    local WindowHandler = { Pages = {}, NavButtons = {}, NavY = 6 }
+
+    function WindowHandler:CreateTab(tabName)
+        local Page = Instance.new("ScrollingFrame", PagesFolder)
+        Page.Name = tabName
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        Page.ScrollBarThickness = 3
+        Page.ScrollBarImageColor3 = Color3.fromRGB(124, 58, 237)
+        Page.Visible = false
+        Page.BorderSizePixel = 0
+
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.Padding = UDim.new(0, 8)
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        local PagePadding = Instance.new("UIPadding", Page)
+        PagePadding.PaddingTop = UDim.new(0, 4)
+        PagePadding.PaddingBottom = UDim.new(0, 8)
+
+        local Btn = Instance.new("TextButton", NavBar)
+        Btn.Size = UDim2.new(1, -10, 0, IsTouchDevice and 30 or 34)
+        Btn.Position = UDim2.new(0, 5, 0, WindowHandler.NavY)
+        Btn.BackgroundColor3 = Color3.fromRGB(24, 18, 42)
+        Btn.Text = tabName
+        Btn.TextColor3 = Color3.fromRGB(170, 165, 195)
+        Btn.Font = Enum.Font.GothamBold
+        Btn.TextSize = IsTouchDevice and 8.5 or 9.5
+        Btn.AutoButtonColor = false
+        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+
+        WindowHandler.NavY = WindowHandler.NavY + (IsTouchDevice and 33 or 37)
+
+        Btn.MouseButton1Click:Connect(function()
+            for _, p in pairs(WindowHandler.Pages) do p.Visible = false end
+            for _, b in pairs(WindowHandler.NavButtons) do
+                b.BackgroundColor3 = Color3.fromRGB(24, 18, 42)
+                b.TextColor3 = Color3.fromRGB(170, 165, 195)
+            end
+            Page.Visible = true
+            Btn.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+
+        if #WindowHandler.Pages == 0 then
+            Page.Visible = true
+            Btn.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+
+        table.insert(WindowHandler.Pages, Page)
+        table.insert(WindowHandler.NavButtons, Btn)
+
+        local TabElements = {}
+
+        -- Element: Add Toggle
+        function TabElements:AddToggle(title, desc, defaultState, callback)
+            local state = defaultState or false
+            local ToggleBtn = Instance.new("TextButton", Page)
+            ToggleBtn.Size = UDim2.new(1, -6, 0, IsTouchDevice and 44 or 48)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(24, 18, 42)
+            ToggleBtn.Text = ""
+            ToggleBtn.AutoButtonColor = false
+            Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
+
+            local Label = Instance.new("TextLabel", ToggleBtn)
+            Label.Size = UDim2.new(1, -64, 0, 18)
+            Label.Position = UDim2.new(0, 15, 0, 4)
+            Label.BackgroundTransparency = 1
+            Label.Text = title
+            Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Label.TextSize = IsTouchDevice and 9 or 11
+            Label.Font = Enum.Font.GothamBold
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+
+            local DescLabel = Instance.new("TextLabel", ToggleBtn)
+            DescLabel.Size = UDim2.new(1, -64, 0, 16)
+            DescLabel.Position = UDim2.new(0, 15, 0, IsTouchDevice and 21 or 23)
+            DescLabel.BackgroundTransparency = 1
+            DescLabel.Text = desc or ""
+            DescLabel.TextColor3 = Color3.fromRGB(170, 165, 195)
+            DescLabel.TextSize = IsTouchDevice and 7 or 8
+            DescLabel.Font = Enum.Font.Gotham
+            DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            local StateBox = Instance.new("TextLabel", ToggleBtn)
+            StateBox.Size = UDim2.new(0, IsTouchDevice and 34 or 40, 0, IsTouchDevice and 20 or 22)
+            StateBox.Position = UDim2.new(1, IsTouchDevice and -40 or -46, 0.5, -11)
+            StateBox.BackgroundColor3 = state and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(50, 20, 28)
+            StateBox.Text = state and "ON" or "OFF"
+            StateBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+            StateBox.TextSize = IsTouchDevice and 8 or 10
+            StateBox.Font = Enum.Font.GothamBold
+            Instance.new("UICorner", StateBox).CornerRadius = UDim.new(0, 6)
+
+            ToggleBtn.MouseButton1Click:Connect(function()
+                state = not state
+                StateBox.Text = state and "ON" or "OFF"
+                StateBox.BackgroundColor3 = state and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(50, 20, 28)
+                if callback then callback(state) end
+            end)
+        end
+
+        -- Element: Add Action Button
+        function TabElements:AddButton(title, callback)
+            local ActionBtn = Instance.new("TextButton", Page)
+            ActionBtn.Size = UDim2.new(1, -6, 0, IsTouchDevice and 36 or 40)
+            ActionBtn.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+            ActionBtn.Text = title
+            ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ActionBtn.Font = Enum.Font.GothamBold
+            ActionBtn.TextSize = IsTouchDevice and 9.5 or 11
+            Instance.new("UICorner", ActionBtn).CornerRadius = UDim.new(0, 8)
+
+            ActionBtn.MouseButton1Click:Connect(function()
+                if callback then callback() end
+            end)
+        end
+
+        return TabElements
+    end
+
+    return WindowHandler
+end
+
+return UILibrary
