@@ -1,6 +1,6 @@
--- NyxUI v4.0 — Star Edition
+-- MAX UI v5.0 — Aurora Edition
 -- حقوق MAX
--- نجوم متحركة، حواف مضبوطة، خطوط واضحة، دعم الجوال والكمبيوتر
+-- واجهة Aurora حديثة، تدرجات ناعمة، تنقل مرتب، ودعم الجوال والكمبيوتر
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -12,7 +12,7 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 local RIGHTS = "MAX"
-local VERSION = "v4.0"
+local VERSION = "v5.0"
 local AUTHOR = "MAX"
 
 local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -20,19 +20,19 @@ local IS_DESKTOP = UserInputService.KeyboardEnabled
 
 local Themes = {
     Midnight = {
-        Background = Color3.fromRGB(16, 16, 22),
-        Surface = Color3.fromRGB(24, 24, 32),
-        SurfaceAlt = Color3.fromRGB(34, 34, 46),
-        Accent = Color3.fromRGB(138, 92, 255),
-        AccentSoft = Color3.fromRGB(88, 62, 175),
-        Text = Color3.fromRGB(240, 240, 250),
-        TextDim = Color3.fromRGB(165, 165, 185),
-        Stroke = Color3.fromRGB(60, 60, 82),
+        Background = Color3.fromRGB(11, 13, 22),
+        Surface = Color3.fromRGB(19, 22, 35),
+        SurfaceAlt = Color3.fromRGB(31, 36, 55),
+        Accent = Color3.fromRGB(145, 105, 255),
+        AccentSoft = Color3.fromRGB(105, 75, 210),
+        Text = Color3.fromRGB(245, 247, 255),
+        TextDim = Color3.fromRGB(153, 162, 187),
+        Stroke = Color3.fromRGB(57, 65, 96),
         Success = Color3.fromRGB(80, 200, 140),
         Error = Color3.fromRGB(230, 80, 100),
         Warning = Color3.fromRGB(240, 190, 80),
         Info = Color3.fromRGB(100, 160, 240),
-        Star = Color3.fromRGB(200, 200, 255),
+        Star = Color3.fromRGB(190, 177, 255),
     },
     Sakura = {
         Background = Color3.fromRGB(22, 16, 20),
@@ -144,17 +144,17 @@ function NyxUI.new(opts)
 
     self.ThemeName = opts.Theme or "Midnight"
     self.Theme = Themes[self.ThemeName] or Themes.Midnight
-    self.Title = opts.Title or "NyxUI"
-    self.Subtitle = opts.Subtitle or (VERSION .. " — " .. RIGHTS)
-    self.SaveName = opts.SaveName or "NyxUI_Config"
+    self.Title = opts.Title or "MAX UI"
+    self.Subtitle = opts.Subtitle or ("AURORA EDITION  •  " .. VERSION .. "  •  " .. RIGHTS)
+    self.SaveName = opts.SaveName or "MAX_UI_Config"
     self.StarsEnabled = opts.Stars ~= false
 
     if IS_MOBILE then
-        self.Width = opts.Width or 340
-        self.Height = opts.Height or 420
+        self.Width = opts.Width or 350
+        self.Height = opts.Height or 460
     else
-        self.Width = opts.Width or 560
-        self.Height = opts.Height or 440
+        self.Width = opts.Width or 600
+        self.Height = opts.Height or 480
     end
 
     self.Tabs = {}
@@ -190,7 +190,7 @@ function NyxUI:_buildGui()
     end
     local parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
     self.Gui = create("ScreenGui", {
-        Name = "NyxUILite_Star",
+        Name = "MAX_UI_Aurora",
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         IgnoreGuiInset = true,
@@ -270,13 +270,25 @@ function NyxUI:_buildWindow()
         ZIndex = 10,
         Parent = self.Gui,
     })
-    corner(win, 10)
-    stroke(win, self.Theme.Stroke, 1, 0.15)
+    corner(win, 14)
+    stroke(win, self.Theme.Accent, 1.15, 0.48)
+    local accentLine = create("Frame", {
+        Name = "AccentLine",
+        Size = UDim2.new(1, -32, 0, 2),
+        Position = UDim2.fromOffset(16, 53),
+        BackgroundColor3 = self.Theme.Accent,
+        BackgroundTransparency = 0.12,
+        BorderSizePixel = 0,
+        ZIndex = 12,
+        Parent = win,
+    })
+    corner(accentLine, 2)
+    self.AccentLine = accentLine
     self.Window = win
 
     local titleBar = create("Frame", {
         Name = "TitleBar",
-        Size = UDim2.new(1, 0, 0, 42),
+        Size = UDim2.new(1, 0, 0, 54),
         BackgroundTransparency = 1,
         ZIndex = 11,
         Parent = win,
@@ -287,14 +299,14 @@ function NyxUI:_buildWindow()
         Name = "Title",
         Text = self.Title,
         Font = Enum.Font.GothamBold,
-        TextSize = 15,
+        TextSize = 17,
         TextColor3 = self.Theme.Text,
         BackgroundTransparency = 1,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         TextScaled = false,
-        Position = UDim2.fromOffset(16, 4),
-        Size = UDim2.new(1, -90, 0, 18),
+        Position = UDim2.fromOffset(18, 7),
+        Size = UDim2.new(1, -100, 0, 22),
         ZIndex = 12,
         Parent = titleBar,
     })
@@ -304,14 +316,14 @@ function NyxUI:_buildWindow()
         Name = "Subtitle",
         Text = self.Subtitle,
         Font = Enum.Font.Gotham,
-        TextSize = 11,
+        TextSize = 10,
         TextColor3 = self.Theme.TextDim,
         BackgroundTransparency = 1,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
         TextScaled = false,
-        Position = UDim2.fromOffset(16, 22),
-        Size = UDim2.new(1, -90, 0, 14),
+        Position = UDim2.fromOffset(19, 31),
+        Size = UDim2.new(1, -100, 0, 14),
         ZIndex = 12,
         Parent = titleBar,
     })
@@ -325,7 +337,7 @@ function NyxUI:_buildWindow()
         TextColor3 = self.Theme.TextDim,
         BackgroundColor3 = self.Theme.SurfaceAlt,
         BorderSizePixel = 0,
-        Position = UDim2.new(1, -38, 0, 10),
+        Position = UDim2.new(1, -38, 0, 13),
         Size = UDim2.fromOffset(28, 28),
         AutoButtonColor = false,
         ZIndex = 12,
@@ -346,7 +358,7 @@ function NyxUI:_buildWindow()
         TextColor3 = self.Theme.TextDim,
         BackgroundColor3 = self.Theme.SurfaceAlt,
         BorderSizePixel = 0,
-        Position = UDim2.new(1, -72, 0, 10),
+        Position = UDim2.new(1, -72, 0, 13),
         Size = UDim2.fromOffset(28, 28),
         AutoButtonColor = false,
         ZIndex = 12,
@@ -359,7 +371,7 @@ function NyxUI:_buildWindow()
     minBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
         local targetSize = minimized
-            and UDim2.fromOffset(self.Width, 42)
+            and UDim2.fromOffset(self.Width, 54)
             or UDim2.fromOffset(self.Width, self.Height)
         quickTween(win, { Size = targetSize }, 0.16)
         self.TabsBar.Visible = not minimized
@@ -405,7 +417,7 @@ function NyxUI:_buildWindow()
         TextYAlignment = Enum.TextYAlignment.Center,
         TextScaled = false,
         Size = UDim2.new(1, -20, 0, 16),
-        Position = UDim2.new(0, 10, 1, -20),
+        Position = UDim2.new(0, 10, 1, -22),
         ZIndex = 12,
         Parent = win,
     })
@@ -415,15 +427,15 @@ end
 function NyxUI:_buildTabsBar()
     local bar = create("Frame", {
         Name = "TabsBar",
-        Size = UDim2.new(1, -20, 0, 34),
-        Position = UDim2.fromOffset(10, 48),
+        Size = UDim2.new(1, -24, 0, 38),
+        Position = UDim2.fromOffset(12, 62),
         BackgroundColor3 = self.Theme.Surface,
         BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ZIndex = 11,
         Parent = self.Window,
     })
-    corner(bar, 8)
+    corner(bar, 10)
     self.TabsBar = bar
 
     list(bar, Enum.FillDirection.Horizontal, 6)
@@ -445,8 +457,8 @@ end
 function NyxUI:_buildContainer()
     local container = create("Frame", {
         Name = "Container",
-        Size = UDim2.new(1, -20, 1, -110),
-        Position = UDim2.fromOffset(10, 88),
+        Size = UDim2.new(1, -24, 1, -132),
+        Position = UDim2.fromOffset(12, 108),
         BackgroundTransparency = 1,
         ZIndex = 11,
         Parent = self.Window,
@@ -474,6 +486,7 @@ end
 function NyxUI:_applyTheme()
     local t = self.Theme
     self.Window.BackgroundColor3 = t.Background
+    if self.AccentLine then self.AccentLine.BackgroundColor3 = t.Accent end
     self.TabsBar.BackgroundColor3 = t.Surface
     self.TitleLabel.TextColor3 = t.Text
     self.SubtitleLabel.TextColor3 = t.TextDim
@@ -523,13 +536,13 @@ function NyxUI:AddTab(name)
         TextColor3 = self.Theme.TextDim,
         BackgroundColor3 = self.Theme.Surface,
         BorderSizePixel = 0,
-        Size = UDim2.fromOffset(78, 26),
+        Size = UDim2.fromOffset(88, 28),
         AutoButtonColor = false,
         TextScaled = false,
         ZIndex = 12,
         Parent = self.TabsBar,
     })
-    corner(btn, 6)
+    corner(btn, 8)
 
     btn.MouseEnter:Connect(function()
         if self.ActiveTab ~= tab then
@@ -606,10 +619,10 @@ function NyxUI:AddSection(tab, title)
         ZIndex = 11,
         Parent = tab.Content,
     })
-    corner(section, 8)
+    corner(section, 11)
     stroke(section, self.Theme.Stroke, 1, 0.3)
     list(section, Enum.FillDirection.Vertical, 8)
-    pad(section, 10, 10, 10, 10)
+    pad(section, 12, 12, 12, 12)
 
     if title then
         local lbl = create("TextLabel", {
@@ -641,13 +654,13 @@ function NyxUI:AddButton(parent, text, callback)
         TextColor3 = self.Theme.Text,
         BackgroundColor3 = self.Theme.SurfaceAlt,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 34),
         AutoButtonColor = false,
         TextScaled = false,
         ZIndex = 12,
         Parent = parent,
     })
-    corner(btn, 6)
+    corner(btn, 8)
 
     btn.MouseEnter:Connect(function()
         btn.BackgroundColor3 = self.Theme.AccentSoft
@@ -919,7 +932,7 @@ function NyxUI:AddDropdown(parent, text, options, default, callback)
         ZIndex = 12,
         Parent = row,
     })
-    corner(btn, 6)
+    corner(btn, 8)
 
     local listFrame = create("Frame", {
         Name = "List",
@@ -972,7 +985,12 @@ function NyxUI:AddDropdown(parent, text, options, default, callback)
     end
 
     local function refreshListSize()
-        listFrame.Size = UDim2.new(0.5, -8, 0, #options * 26 + 8)
+        listFrame.Size = UDim2.new(0.5, -8, 0, math.min(#options, 6) * 26 + 8)
+        for index, child in ipairs(listFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.Visible = index <= 6
+            end
+        end
     end
 
     btn.MouseButton1Click:Connect(function()
@@ -1286,7 +1304,7 @@ function NyxUI:_reflowNotifications()
         if notif.Frame and notif.Frame.Parent then
             local targetY = baseY + index * (notif.Height + spacing)
             quickTween(notif.Frame, {
-                Position = UDim2.new(1, -290, 0, targetY),
+                Position = UDim2.new(1, -(IS_MOBILE and 232 or 290), 0, targetY),
             }, 0.14)
             index = index + 1
         end
@@ -1470,15 +1488,15 @@ function NyxUI:_saveConfig()
         return HttpService:JSONEncode(self._config or {})
     end)
     if not ok then return end
-    if not isfolder("NyxUI") then
-        pcall(makefolder, "NyxUI")
+    if not isfolder("MAX_UI") then
+        pcall(makefolder, "MAX_UI")
     end
-    pcall(writefile, "NyxUI/" .. self.SaveName .. ".json", encoded)
+    pcall(writefile, "MAX_UI/" .. self.SaveName .. ".json", encoded)
 end
 
 function NyxUI:_loadConfig()
     if not readfile or not isfile then return end
-    local path = "NyxUI/" .. self.SaveName .. ".json"
+    local path = "MAX_UI/" .. self.SaveName .. ".json"
     if isfile(path) then
         local ok, data = pcall(function()
             return HttpService:JSONDecode(readfile(path))
