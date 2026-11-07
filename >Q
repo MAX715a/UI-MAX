@@ -1,1541 +1,275 @@
--- MAX UI Library v6.1 — Reusable ModuleScript
--- حقوق MAX
--- إعادة تصميم كاملة: واجهة نظيفة، تحكم سحب ثابت، ودعم الجوال والكمبيوتر
+--[[
+    ================================================================
+    ✨ MAX Custom UI Framework / Template ✨
+    ================================================================
+    * Reusable Roblox Script UI Library
+    * Dark Cyberpunk Theme (Purple / Neon Cyan)
+    * Mobile & PC Adaptive
+    ================================================================
+]]
+
+local UILibrary = {}
 
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
-local LocalPlayer = Players.LocalPlayer
+local LP = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
 
-local RIGHTS = "MAX"
-local VERSION = "v6.1"
-local AUTHOR = "MAX"
-
-local IS_MOBILE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local IS_DESKTOP = UserInputService.KeyboardEnabled
-
-local Themes = {
-    Midnight = {
-        Background = Color3.fromRGB(12, 14, 18),
-        Surface = Color3.fromRGB(20, 23, 29),
-        SurfaceAlt = Color3.fromRGB(31, 36, 44),
-        Accent = Color3.fromRGB(0, 190, 255),
-        AccentSoft = Color3.fromRGB(0, 125, 190),
-        Text = Color3.fromRGB(246, 248, 252),
-        TextDim = Color3.fromRGB(151, 161, 176),
-        Stroke = Color3.fromRGB(53, 63, 76),
-        Success = Color3.fromRGB(70, 210, 145),
-        Error = Color3.fromRGB(245, 82, 105),
-        Warning = Color3.fromRGB(245, 190, 72),
-        Info = Color3.fromRGB(65, 175, 245),
-        Star = Color3.fromRGB(105, 215, 255),
-    },
-    Sakura = {
-        Background = Color3.fromRGB(22, 16, 20),
-        Surface = Color3.fromRGB(32, 24, 30),
-        SurfaceAlt = Color3.fromRGB(44, 32, 40),
-        Accent = Color3.fromRGB(255, 140, 180),
-        AccentSoft = Color3.fromRGB(180, 100, 130),
-        Text = Color3.fromRGB(250, 240, 245),
-        TextDim = Color3.fromRGB(205, 175, 190),
-        Stroke = Color3.fromRGB(85, 65, 75),
-        Success = Color3.fromRGB(120, 220, 160),
-        Error = Color3.fromRGB(240, 100, 120),
-        Warning = Color3.fromRGB(250, 200, 120),
-        Info = Color3.fromRGB(140, 180, 240),
-        Star = Color3.fromRGB(255, 220, 230),
-    },
-    Cyber = {
-        Background = Color3.fromRGB(8, 14, 20),
-        Surface = Color3.fromRGB(14, 22, 30),
-        SurfaceAlt = Color3.fromRGB(22, 34, 44),
-        Accent = Color3.fromRGB(0, 220, 200),
-        AccentSoft = Color3.fromRGB(0, 150, 140),
-        Text = Color3.fromRGB(230, 250, 250),
-        TextDim = Color3.fromRGB(155, 185, 190),
-        Stroke = Color3.fromRGB(45, 75, 85),
-        Success = Color3.fromRGB(80, 230, 160),
-        Error = Color3.fromRGB(255, 90, 110),
-        Warning = Color3.fromRGB(240, 210, 80),
-        Info = Color3.fromRGB(80, 180, 240),
-        Star = Color3.fromRGB(180, 255, 245),
-    },
-    Mono = {
-        Background = Color3.fromRGB(12, 12, 12),
-        Surface = Color3.fromRGB(20, 20, 20),
-        SurfaceAlt = Color3.fromRGB(32, 32, 32),
-        Accent = Color3.fromRGB(220, 220, 220),
-        AccentSoft = Color3.fromRGB(140, 140, 140),
-        Text = Color3.fromRGB(240, 240, 240),
-        TextDim = Color3.fromRGB(155, 155, 155),
-        Stroke = Color3.fromRGB(65, 65, 65),
-        Success = Color3.fromRGB(160, 220, 160),
-        Error = Color3.fromRGB(220, 120, 120),
-        Warning = Color3.fromRGB(220, 200, 120),
-        Info = Color3.fromRGB(140, 180, 220),
-        Star = Color3.fromRGB(220, 220, 220),
-    },
-}
-
-local function create(className, props)
-    local inst = Instance.new(className)
-    for k, v in pairs(props or {}) do
-        inst[k] = v
+local function getParent()
+    if type(gethui) == "function" then
+        local ok, h = pcall(gethui)
+        if ok and h then return h end
     end
-    return inst
+    local ok, cg = pcall(function() return CoreGui end)
+    if ok and cg then return cg end
+    return LP:WaitForChild("PlayerGui")
 end
 
-local function corner(inst, radius)
-    create("UICorner", { CornerRadius = UDim.new(0, radius or 6), Parent = inst })
-end
+function UILibrary:CreateWindow(options)
+    options = options or {}
+    local hubTitle = options.Title or "CUSTOM HUB"
+    local hubSubTitle = options.SubTitle or "Version 1.0"
+    local toggleKey = options.ToggleKey or Enum.KeyCode.K
+    local logoId = options.LogoID or "rbxassetid://107017439426055"
 
-local function stroke(inst, color, thickness, transparency)
-    return create("UIStroke", {
-        Color = color or Color3.fromRGB(60, 60, 82),
-        Thickness = thickness or 1,
-        Transparency = transparency or 0,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        Parent = inst,
-    })
-end
+    local IsTouchDevice = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+    local MAIN_SIZE = IsTouchDevice and UDim2.fromOffset(480, 360) or UDim2.fromOffset(640, 470)
 
-local function pad(inst, t, b, l, r)
-    create("UIPadding", {
-        PaddingTop = UDim.new(0, t or 0),
-        PaddingBottom = UDim.new(0, b or 0),
-        PaddingLeft = UDim.new(0, l or 0),
-        PaddingRight = UDim.new(0, r or 0),
-        Parent = inst,
-    })
-end
-
-local function list(inst, dir, spacing)
-    create("UIListLayout", {
-        FillDirection = dir or Enum.FillDirection.Vertical,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, spacing or 6),
-        Parent = inst,
-    })
-end
-
-local function quickTween(inst, props, duration)
-    if not inst or not inst.Parent then return end
-    local info = TweenInfo.new(duration or 0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    TweenService:Create(inst, info, props):Play()
-end
-
-local NotificationType = {
-    Success = "Success",
-    Error = "Error",
-    Warning = "Warning",
-    Info = "Info",
-}
-
-local NyxUI = {}
-NyxUI.__index = NyxUI
-
-function NyxUI.new(opts)
-    opts = opts or {}
-    local self = setmetatable({}, NyxUI)
-
-    self.ThemeName = opts.Theme or "Midnight"
-    self.Theme = Themes[self.ThemeName] or Themes.Midnight
-    self.Title = opts.Title or "MAX UI"
-    self.Subtitle = opts.Subtitle or ("AURORA EDITION  •  " .. VERSION .. "  •  " .. RIGHTS)
-    self.SaveName = opts.SaveName or "MAX_UI_Config"
-    self.StarsEnabled = opts.Stars ~= false
-
-    if IS_MOBILE then
-        self.Width = opts.Width or 340
-        self.Height = opts.Height or 450
-    else
-        self.Width = opts.Width or 720
-        self.Height = opts.Height or 520
+    -- Cleanup Previous UI
+    local parentGui = getParent()
+    for _, c in ipairs(parentGui:GetChildren()) do
+        if c.Name == "MAX_Template_UI" then c:Destroy() end
     end
 
-    self.Tabs = {}
-    self.ActiveTab = nil
-    self.Connections = {}
-    self.Widgets = {}
-    self._config = {}
-    self._notifications = {}
-    self._notificationOrder = 0
-    self._stars = {}
-    self._starConn = nil
+    local mainGui = Instance.new("ScreenGui")
+    mainGui.Name = "MAX_Template_UI"
+    mainGui.ResetOnSpawn = false
+    mainGui.IgnoreGuiInset = true
+    mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    mainGui.Parent = parentGui
 
-    self:_loadConfig()
-    self:_buildGui()
-    self:_buildStars()
-    self:_buildWindow()
-    self:_buildTabsBar()
-    self:_buildContainer()
-    self:_applyTheme()
-    self:_startStars()
+    local mainFrame = Instance.new("Frame", mainGui)
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = MAIN_SIZE
+    mainFrame.Position = UDim2.new(0.5, -MAIN_SIZE.X.Offset/2, 0.42, -MAIN_SIZE.Y.Offset/2)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(10, 8, 18)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.ClipsDescendants = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 18)
 
-    _G.MAXUI = self
-    _G.NyxUI = self -- backward-compatible alias
-    _G.NyxUI_RIGHTS = RIGHTS
-    _G.NyxUI_VERSION = VERSION
-    _G.NyxUI_MOBILE = IS_MOBILE
+    local mainStroke = Instance.new("UIStroke", mainFrame)
+    mainStroke.Color = Color3.fromRGB(124, 58, 237)
+    mainStroke.Thickness = 2.5
+    mainStroke.Transparency = 0.15
 
-    return self
-end
+    -- Header
+    local header = Instance.new("Frame", mainFrame)
+    header.Size = UDim2.new(1, 0, 0, IsTouchDevice and 46 or 54)
+    header.BackgroundColor3 = Color3.fromRGB(16, 12, 28)
+    header.BorderSizePixel = 0
+    header.ZIndex = 2
+    Instance.new("UICorner", header).CornerRadius = UDim.new(0, 18)
 
-function NyxUI:_buildGui()
-    if self.Gui and self.Gui.Parent then
-        self.Gui:Destroy()
+    local titleLbl = Instance.new("TextLabel", header)
+    titleLbl.Position = UDim2.fromOffset(16, IsTouchDevice and 5 or 8)
+    titleLbl.Size = UDim2.new(0, 210, 0, IsTouchDevice and 16 or 19)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = hubTitle
+    titleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = IsTouchDevice and 13 or 16
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local subTitleLbl = Instance.new("TextLabel", header)
+    subTitleLbl.Position = UDim2.fromOffset(16, IsTouchDevice and 23 or 30)
+    subTitleLbl.Size = UDim2.new(0, 210, 0, 14)
+    subTitleLbl.BackgroundTransparency = 1
+    subTitleLbl.Text = hubSubTitle
+    subTitleLbl.TextColor3 = Color3.fromRGB(0, 240, 255)
+    subTitleLbl.Font = Enum.Font.GothamMedium
+    subTitleLbl.TextSize = IsTouchDevice and 8 or 10
+    subTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.fromOffset(IsTouchDevice and 24 or 28, IsTouchDevice and 24 or 28)
+    closeBtn.Position = UDim2.new(1, IsTouchDevice and -30 or -34, 0, IsTouchDevice and 10 or 12)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(220, 38, 38)
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = IsTouchDevice and 10 or 12
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+
+    local openBtn = Instance.new("ImageButton", mainGui)
+    openBtn.Name = "MAX_OpenBtn"
+    openBtn.Size = UDim2.fromOffset(IsTouchDevice and 46 or 52, IsTouchDevice and 46 or 52)
+    openBtn.Position = UDim2.new(0.02, 0, 0.2, 0)
+    openBtn.BackgroundColor3 = Color3.fromRGB(16, 12, 28)
+    openBtn.Image = logoId
+    openBtn.Visible = false
+    openBtn.Active = true
+    openBtn.Draggable = true
+    Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
+    local openStroke = Instance.new("UIStroke", openBtn)
+    openStroke.Color = Color3.fromRGB(124, 58, 237)
+    openStroke.Thickness = 2.5
+
+    local function toggleUI()
+        mainFrame.Visible = not mainFrame.Visible
+        openBtn.Visible = not mainFrame.Visible
     end
-    local parent = (type(gethui) == "function" and gethui()) or LocalPlayer:WaitForChild("PlayerGui")
-    self.Gui = create("ScreenGui", {
-        Name = "MAX_UI_Aurora",
-        ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        IgnoreGuiInset = true,
-        DisplayOrder = 999,
-        Parent = parent,
-    })
-end
+    closeBtn.MouseButton1Click:Connect(toggleUI)
+    openBtn.MouseButton1Click:Connect(toggleUI)
 
-function NyxUI:_buildStars()
-    self.StarLayer = create("Frame", {
-        Name = "StarLayer",
-        Size = UDim2.fromOffset(self.Width, self.Height),
-        Position = UDim2.new(0.5, -self.Width / 2, 0.5, -self.Height / 2),
-        BackgroundTransparency = 1,
-        ClipsDescendants = true,
-        ZIndex = 1,
-        Parent = self.Gui,
-    })
-    corner(self.StarLayer, 10)
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if not gp and input.KeyCode == toggleKey then toggleUI() end
+    end)
 
-    if not self.StarsEnabled then return end
+    -- Sidebar / Nav
+    local NavWidth = IsTouchDevice and 125 or 150
+    local NavBar = Instance.new("Frame", mainFrame)
+    NavBar.Size = UDim2.new(0, NavWidth, 1, IsTouchDevice and -56 or -66)
+    NavBar.Position = UDim2.new(0, 8, 0, IsTouchDevice and 50 or 60)
+    NavBar.BackgroundColor3 = Color3.fromRGB(16, 12, 28)
+    NavBar.BorderSizePixel = 0
+    NavBar.ZIndex = 2
+    Instance.new("UICorner", NavBar).CornerRadius = UDim.new(0, 12)
 
-    local count = IS_MOBILE and 18 or 32
-    for i = 1, count do
-        local size = math.random(2, 4)
-        local star = create("Frame", {
-            Name = "Star" .. i,
-            Size = UDim2.fromOffset(size, size),
-            Position = UDim2.new(math.random(), 0, math.random(), 0),
-            BackgroundColor3 = self.Theme.Star,
-            BackgroundTransparency = math.random(40, 80) / 100,
-            BorderSizePixel = 0,
-            ZIndex = 2,
-            Parent = self.StarLayer,
-        })
-        corner(star, size / 2)
-        table.insert(self._stars, {
-            Frame = star,
-            SpeedX = (math.random() - 0.5) * 0.02,
-            SpeedY = (math.random() - 0.5) * 0.02,
-            TwinkleSpeed = math.random(10, 30) / 10,
-            TwinklePhase = math.random() * math.pi * 2,
-        })
-    end
-end
+    local PagesFolder = Instance.new("Frame", mainFrame)
+    PagesFolder.Size = UDim2.new(1, -NavWidth - 20, 1, IsTouchDevice and -56 or -66)
+    PagesFolder.Position = UDim2.new(0, NavWidth + 14, 0, IsTouchDevice and 50 or 60)
+    PagesFolder.BackgroundTransparency = 1
+    PagesFolder.ZIndex = 2
 
-function NyxUI:_startStars()
-    if not self.StarsEnabled then return end
-    local elapsed = 0
-    self._starConn = RunService.Heartbeat:Connect(function(dt)
-        elapsed = elapsed + dt
-        for _, star in ipairs(self._stars) do
-            local frame = star.Frame
-            if frame and frame.Parent then
-                local pos = frame.Position
-                local newX = pos.X.Scale + star.SpeedX * dt
-                local newY = pos.Y.Scale + star.SpeedY * dt
-                if newX < 0 then newX = 1 elseif newX > 1 then newX = 0 end
-                if newY < 0 then newY = 1 elseif newY > 1 then newY = 0 end
-                frame.Position = UDim2.new(newX, 0, newY, 0)
-                local twinkle = (math.sin(elapsed * star.TwinkleSpeed + star.TwinklePhase) + 1) / 2
-                frame.BackgroundTransparency = 0.4 + twinkle * 0.5
+    local WindowHandler = { Pages = {}, NavButtons = {}, NavY = 6 }
+
+    function WindowHandler:CreateTab(tabName)
+        local Page = Instance.new("ScrollingFrame", PagesFolder)
+        Page.Name = tabName
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        Page.ScrollBarThickness = 3
+        Page.ScrollBarImageColor3 = Color3.fromRGB(124, 58, 237)
+        Page.Visible = false
+        Page.BorderSizePixel = 0
+
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.Padding = UDim.new(0, 8)
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        local PagePadding = Instance.new("UIPadding", Page)
+        PagePadding.PaddingTop = UDim.new(0, 4)
+        PagePadding.PaddingBottom = UDim.new(0, 8)
+
+        local Btn = Instance.new("TextButton", NavBar)
+        Btn.Size = UDim2.new(1, -10, 0, IsTouchDevice and 30 or 34)
+        Btn.Position = UDim2.new(0, 5, 0, WindowHandler.NavY)
+        Btn.BackgroundColor3 = Color3.fromRGB(24, 18, 42)
+        Btn.Text = tabName
+        Btn.TextColor3 = Color3.fromRGB(170, 165, 195)
+        Btn.Font = Enum.Font.GothamBold
+        Btn.TextSize = IsTouchDevice and 8.5 or 9.5
+        Btn.AutoButtonColor = false
+        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+
+        WindowHandler.NavY = WindowHandler.NavY + (IsTouchDevice and 33 or 37)
+
+        Btn.MouseButton1Click:Connect(function()
+            for _, p in pairs(WindowHandler.Pages) do p.Visible = false end
+            for _, b in pairs(WindowHandler.NavButtons) do
+                b.BackgroundColor3 = Color3.fromRGB(24, 18, 42)
+                b.TextColor3 = Color3.fromRGB(170, 165, 195)
             end
+            Page.Visible = true
+            Btn.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end)
+
+        if #WindowHandler.Pages == 0 then
+            Page.Visible = true
+            Btn.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end
-    end)
-    table.insert(self.Connections, self._starConn)
-end
 
-function NyxUI:_buildWindow()
-    local win = create("Frame", {
-        Name = "Window",
-        Size = UDim2.fromOffset(self.Width, self.Height),
-        Position = UDim2.new(0.5, -self.Width / 2, 0.5, -self.Height / 2),
-        BackgroundColor3 = self.Theme.Background,
-        BackgroundTransparency = 0.08,
-        BorderSizePixel = 0,
-        ZIndex = 10,
-        Parent = self.Gui,
-    })
-    corner(win, 18)
-    stroke(win, self.Theme.Stroke, 1.25, 0.12)
-    local accentLine = create("Frame", {
-        Name = "AccentLine",
-        Size = UDim2.new(1, -36, 0, 3),
-        Position = UDim2.fromOffset(18, 57),
-        BackgroundColor3 = self.Theme.Accent,
-        BackgroundTransparency = 0.12,
-        BorderSizePixel = 0,
-        ZIndex = 12,
-        Parent = win,
-    })
-    corner(accentLine, 2)
-    self.AccentLine = accentLine
-    self.Window = win
+        table.insert(WindowHandler.Pages, Page)
+        table.insert(WindowHandler.NavButtons, Btn)
 
-    local titleBar = create("Frame", {
-        Name = "TitleBar",
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundTransparency = 1,
-        ZIndex = 11,
-        Parent = win,
-    })
-    self.TitleBar = titleBar
+        local TabElements = {}
 
-    local titleLbl = create("TextLabel", {
-        Name = "Title",
-        Text = self.Title,
-        Font = Enum.Font.GothamBold,
-        TextSize = 17,
-        TextColor3 = self.Theme.Text,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Position = UDim2.fromOffset(20, 8),
-        Size = UDim2.new(1, -112, 0, 24),
-        ZIndex = 12,
-        Parent = titleBar,
-    })
-    self.TitleLabel = titleLbl
+        -- Element: Add Toggle
+        function TabElements:AddToggle(title, desc, defaultState, callback)
+            local state = defaultState or false
+            local ToggleBtn = Instance.new("TextButton", Page)
+            ToggleBtn.Size = UDim2.new(1, -6, 0, IsTouchDevice and 44 or 48)
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(24, 18, 42)
+            ToggleBtn.Text = ""
+            ToggleBtn.AutoButtonColor = false
+            Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
-    local subLbl = create("TextLabel", {
-        Name = "Subtitle",
-        Text = self.Subtitle,
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Position = UDim2.fromOffset(21, 34),
-        Size = UDim2.new(1, -112, 0, 14),
-        ZIndex = 12,
-        Parent = titleBar,
-    })
-    self.SubtitleLabel = subLbl
+            local Label = Instance.new("TextLabel", ToggleBtn)
+            Label.Size = UDim2.new(1, -64, 0, 18)
+            Label.Position = UDim2.new(0, 15, 0, 4)
+            Label.BackgroundTransparency = 1
+            Label.Text = title
+            Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Label.TextSize = IsTouchDevice and 9 or 11
+            Label.Font = Enum.Font.GothamBold
+            Label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local closeBtn = create("TextButton", {
-        Name = "Close",
-        Text = "X",
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        Position = UDim2.new(1, -40, 0, 16),
-        Size = UDim2.fromOffset(28, 28),
-        AutoButtonColor = false,
-        ZIndex = 12,
-        Parent = titleBar,
-    })
-    corner(closeBtn, 7)
-    self.CloseButton = closeBtn
+            local DescLabel = Instance.new("TextLabel", ToggleBtn)
+            DescLabel.Size = UDim2.new(1, -64, 0, 16)
+            DescLabel.Position = UDim2.new(0, 15, 0, IsTouchDevice and 21 or 23)
+            DescLabel.BackgroundTransparency = 1
+            DescLabel.Text = desc or ""
+            DescLabel.TextColor3 = Color3.fromRGB(170, 165, 195)
+            DescLabel.TextSize = IsTouchDevice and 7 or 8
+            DescLabel.Font = Enum.Font.Gotham
+            DescLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    closeBtn.MouseButton1Click:Connect(function()
-        self:Destroy()
-    end)
+            local StateBox = Instance.new("TextLabel", ToggleBtn)
+            StateBox.Size = UDim2.new(0, IsTouchDevice and 34 or 40, 0, IsTouchDevice and 20 or 22)
+            StateBox.Position = UDim2.new(1, IsTouchDevice and -40 or -46, 0.5, -11)
+            StateBox.BackgroundColor3 = state and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(50, 20, 28)
+            StateBox.Text = state and "ON" or "OFF"
+            StateBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+            StateBox.TextSize = IsTouchDevice and 8 or 10
+            StateBox.Font = Enum.Font.GothamBold
+            Instance.new("UICorner", StateBox).CornerRadius = UDim.new(0, 6)
 
-    local minBtn = create("TextButton", {
-        Name = "Minimize",
-        Text = "–",
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        Position = UDim2.new(1, -74, 0, 16),
-        Size = UDim2.fromOffset(28, 28),
-        AutoButtonColor = false,
-        ZIndex = 12,
-        Parent = titleBar,
-    })
-    corner(minBtn, 7)
-    self.MinButton = minBtn
-
-    local minimized = false
-    minBtn.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        local targetSize = minimized
-            and UDim2.fromOffset(self.Width, 60)
-            or UDim2.fromOffset(self.Width, self.Height)
-        quickTween(win, { Size = targetSize }, 0.16)
-        self.TabsBar.Visible = not minimized
-        self.Container.Visible = not minimized
-        self.Footer.Visible = not minimized
-    end)
-
-    local dragging, dragStart, startPos
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = win.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+            ToggleBtn.MouseButton1Click:Connect(function()
+                state = not state
+                StateBox.Text = state and "ON" or "OFF"
+                StateBox.BackgroundColor3 = state and Color3.fromRGB(124, 58, 237) or Color3.fromRGB(50, 20, 28)
+                if callback then callback(state) end
             end)
         end
-    end)
-    local dragConn = UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            win.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
-            self.StarLayer.Position = win.Position
-        end
-    end)
-    table.insert(self.Connections, dragConn)
 
-    local footer = create("TextLabel", {
-        Name = "Footer",
-        Text = "حقوق " .. RIGHTS .. " © " .. AUTHOR .. " — " .. VERSION,
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Size = UDim2.new(1, -20, 0, 16),
-        Position = UDim2.new(0, 10, 1, -22),
-        ZIndex = 12,
-        Parent = win,
-    })
-    self.Footer = footer
-end
-
-function NyxUI:_buildTabsBar()
-    local bar = create("Frame", {
-        Name = "TabsBar",
-        Size = UDim2.new(1, -24, 0, 38),
-        Position = UDim2.fromOffset(12, 62),
-        BackgroundColor3 = self.Theme.Surface,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        ZIndex = 11,
-        Parent = self.Window,
-    })
-    corner(bar, 10)
-    self.TabsBar = bar
-
-    list(bar, Enum.FillDirection.Horizontal, 6)
-    pad(bar, 0, 0, 8, 8)
-
-    local indicator = create("Frame", {
-        Name = "Indicator",
-        Size = UDim2.new(0, 0, 0, 2),
-        Position = UDim2.new(0, 8, 1, -4),
-        BackgroundColor3 = self.Theme.Accent,
-        BorderSizePixel = 0,
-        ZIndex = 12,
-        Parent = bar,
-    })
-    corner(indicator, 2)
-    self.TabIndicator = indicator
-end
-
-function NyxUI:_buildContainer()
-    local container = create("Frame", {
-        Name = "Container",
-        Size = UDim2.new(1, -24, 1, -132),
-        Position = UDim2.fromOffset(12, 108),
-        BackgroundTransparency = 1,
-        ZIndex = 11,
-        Parent = self.Window,
-    })
-    self.Container = container
-
-    local scroll = create("ScrollingFrame", {
-        Name = "Scroll",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ScrollBarThickness = 4,
-        ScrollBarImageColor3 = self.Theme.Accent,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        ZIndex = 11,
-        Parent = container,
-    })
-    self.Scroll = scroll
-
-    list(scroll, Enum.FillDirection.Vertical, 10)
-    pad(scroll, 6, 6, 4, 8)
-end
-
-function NyxUI:_applyTheme()
-    local t = self.Theme
-    self.Window.BackgroundColor3 = t.Background
-    if self.AccentLine then self.AccentLine.BackgroundColor3 = t.Accent end
-    self.TabsBar.BackgroundColor3 = t.Surface
-    self.TitleLabel.TextColor3 = t.Text
-    self.SubtitleLabel.TextColor3 = t.TextDim
-    self.CloseButton.BackgroundColor3 = t.SurfaceAlt
-    self.CloseButton.TextColor3 = t.TextDim
-    self.MinButton.BackgroundColor3 = t.SurfaceAlt
-    self.MinButton.TextColor3 = t.TextDim
-    self.TabIndicator.BackgroundColor3 = t.Accent
-    self.Scroll.ScrollBarImageColor3 = t.Accent
-    self.Footer.TextColor3 = t.TextDim
-
-    for _, d in ipairs(self.Window:GetDescendants()) do
-        if d:IsA("UIStroke") then
-            d.Color = t.Stroke
-        end
-    end
-
-    for _, star in ipairs(self._stars) do
-        if star.Frame and star.Frame.Parent then
-            star.Frame.BackgroundColor3 = t.Star
-        end
-    end
-
-    for _, tab in ipairs(self.Tabs) do
-        if tab.Button then
-            local active = (self.ActiveTab == tab)
-            tab.Button.BackgroundColor3 = active and t.SurfaceAlt or t.Surface
-            tab.Button.TextColor3 = active and t.Text or t.TextDim
-        end
-    end
-
-    for _, notif in ipairs(self._notifications) do
-        if notif.Frame and notif.Frame.Parent then
-            notif.Frame.BackgroundColor3 = t.Surface
-        end
-    end
-end
-
-function NyxUI:AddTab(name)
-    local tab = { Name = name, Built = false }
-
-    local btn = create("TextButton", {
-        Name = "Tab_" .. name,
-        Text = name,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundColor3 = self.Theme.Surface,
-        BorderSizePixel = 0,
-        Size = UDim2.fromOffset(88, 28),
-        AutoButtonColor = false,
-        TextScaled = false,
-        ZIndex = 12,
-        Parent = self.TabsBar,
-    })
-    corner(btn, 8)
-
-    btn.MouseEnter:Connect(function()
-        if self.ActiveTab ~= tab then
-            btn.BackgroundColor3 = self.Theme.SurfaceAlt
-        end
-    end)
-    btn.MouseLeave:Connect(function()
-        if self.ActiveTab ~= tab then
-            btn.BackgroundColor3 = self.Theme.Surface
-        end
-    end)
-    btn.MouseButton1Click:Connect(function()
-        self:SelectTab(tab)
-    end)
-
-    tab.Button = btn
-    table.insert(self.Tabs, tab)
-
-    if not self.ActiveTab then
-        self:SelectTab(tab)
-    end
-
-    return tab
-end
-
-function NyxUI:SelectTab(tab)
-    if self.ActiveTab == tab then return end
-    self.ActiveTab = tab
-
-    for _, t in ipairs(self.Tabs) do
-        local active = (t == tab)
-        t.Button.BackgroundColor3 = active and self.Theme.SurfaceAlt or self.Theme.Surface
-        t.Button.TextColor3 = active and self.Theme.Text or self.Theme.TextDim
-    end
-
-    local btn = tab.Button
-    local targetPos = UDim2.new(
-        0, btn.AbsolutePosition.X - self.TabsBar.AbsolutePosition.X,
-        1, -4
-    )
-    local targetSize = UDim2.new(0, btn.AbsoluteSize.X, 0, 2)
-    quickTween(self.TabIndicator, { Position = targetPos, Size = targetSize }, 0.14)
-
-    for _, child in ipairs(self.Scroll:GetChildren()) do
-        if child:IsA("Frame") and child.Name == "TabContent" then
-            child.Visible = false
-        end
-    end
-
-    if not tab.Built then
-        local content = create("Frame", {
-            Name = "TabContent",
-            Size = UDim2.new(1, 0, 0, 0),
-            BackgroundTransparency = 1,
-            AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 11,
-            Parent = self.Scroll,
-        })
-        list(content, Enum.FillDirection.Vertical, 10)
-        tab.Content = content
-        tab.Built = true
-    end
-    tab.Content.Visible = true
-end
-
-function NyxUI:AddSection(tab, title)
-    local section = create("Frame", {
-        Name = "Section",
-        Size = UDim2.new(1, 0, 0, 0),
-        BackgroundColor3 = self.Theme.Surface,
-        BackgroundTransparency = 0.15,
-        BorderSizePixel = 0,
-        AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 11,
-        Parent = tab.Content,
-    })
-    corner(section, 14)
-    stroke(section, self.Theme.Stroke, 1, 0.18)
-    list(section, Enum.FillDirection.Vertical, 8)
-    pad(section, 12, 12, 12, 12)
-
-    if title then
-        local lbl = create("TextLabel", {
-            Name = "Title",
-            Text = title,
-            Font = Enum.Font.GothamBold,
-            TextSize = 12,
-            TextColor3 = self.Theme.Text,
-            BackgroundTransparency = 1,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            TextScaled = false,
-            Size = UDim2.new(1, 0, 0, 18),
-            ZIndex = 12,
-            Parent = section,
-        })
-        lbl.LayoutOrder = -1
-    end
-
-    return section
-end
-
-function NyxUI:AddButton(parent, text, callback)
-    local btn = create("TextButton", {
-        Name = "Button",
-        Text = text,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 38),
-        AutoButtonColor = false,
-        TextScaled = false,
-        ZIndex = 12,
-        Parent = parent,
-    })
-    corner(btn, 8)
-
-    btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = self.Theme.AccentSoft
-    end)
-    btn.MouseLeave:Connect(function()
-        btn.BackgroundColor3 = self.Theme.SurfaceAlt
-    end)
-    btn.MouseButton1Click:Connect(function()
-        btn.BackgroundColor3 = self.Theme.Accent
-        task.delay(0.1, function()
-            if btn and btn.Parent then
-                btn.BackgroundColor3 = self.Theme.SurfaceAlt
-            end
-        end)
-        if callback then
-            local ok, err = pcall(callback)
-            if not ok then
-                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
-            end
-        end
-    end)
-
-    return btn
-end
-
-function NyxUI:AddToggle(parent, text, default, callback)
-    local row = create("Frame", {
-        Name = "ToggleRow",
-        Size = UDim2.new(1, 0, 0, 28),
-        BackgroundTransparency = 1,
-        ZIndex = 12,
-        Parent = parent,
-    })
-
-    create("TextLabel", {
-        Text = text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Size = UDim2.new(1, -52, 1, 0),
-        ZIndex = 12,
-        Parent = row,
-    })
-
-    local switch = create("Frame", {
-        Name = "Switch",
-        Size = UDim2.fromOffset(38, 20),
-        Position = UDim2.new(1, -38, 0.5, -10),
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        ZIndex = 12,
-        Parent = row,
-    })
-    corner(switch, 10)
-
-    local knob = create("Frame", {
-        Name = "Knob",
-        Size = UDim2.fromOffset(16, 16),
-        Position = UDim2.fromOffset(2, 2),
-        BackgroundColor3 = self.Theme.Text,
-        BorderSizePixel = 0,
-        ZIndex = 13,
-        Parent = switch,
-    })
-    corner(knob, 8)
-
-    local state = default or false
-    local function update()
-        quickTween(knob, { Position = state and UDim2.fromOffset(20, 2) or UDim2.fromOffset(2, 2) }, 0.12)
-        switch.BackgroundColor3 = state and self.Theme.Accent or self.Theme.SurfaceAlt
-    end
-    update()
-
-    local btn = create("TextButton", {
-        Text = "",
-        BackgroundTransparency = 1,
-        Size = UDim2.fromScale(1, 1),
-        ZIndex = 14,
-        Parent = switch,
-    })
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        update()
-        if callback then
-            local ok, err = pcall(callback, state)
-            if not ok then
-                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
-            end
-        end
-        self._config[text] = state
-    end)
-
-    self.Widgets[text] = {
-        Type = "Toggle",
-        Get = function() return state end,
-        Set = function(v) state = v; update() end,
-    }
-
-    return {
-        Set = function(_, v)
-            state = v
-            update()
-            if callback then pcall(callback, state) end
-        end,
-        Get = function() return state end,
-    }
-end
-
-function NyxUI:AddSlider(parent, text, min, max, default, callback)
-    min = tonumber(min) or 0
-    max = tonumber(max) or 100
-    if max <= min then max = min + 1 end
-
-    local row = create("Frame", {
-        Name = "SliderRow", Size = UDim2.new(1, 0, 0, 54),
-        BackgroundTransparency = 1, ZIndex = 12, Parent = parent,
-    })
-    create("TextLabel", {
-        Text = text, Font = Enum.Font.GothamMedium, TextSize = 12,
-        TextColor3 = self.Theme.Text, BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false, Size = UDim2.new(1, -64, 0, 20), ZIndex = 12, Parent = row,
-    })
-    local valueLbl = create("TextLabel", {
-        Text = tostring(default or min), Font = Enum.Font.GothamBold, TextSize = 12,
-        TextColor3 = self.Theme.Accent, BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Right, TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false, Size = UDim2.new(0, 60, 0, 20),
-        Position = UDim2.new(1, -60, 0, 0), ZIndex = 12, Parent = row,
-    })
-    local bar = create("TextButton", {
-        Name = "SliderTrack", Text = "", Size = UDim2.new(1, 0, 0, 10),
-        Position = UDim2.new(0, 0, 0, 34), BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0, AutoButtonColor = false, Active = true,
-        Selectable = false, ZIndex = 12, Parent = row,
-    })
-    corner(bar, 5)
-    local fill = create("Frame", {
-        Name = "Fill", Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = self.Theme.Accent, BorderSizePixel = 0,
-        Active = true, ZIndex = 13, Parent = bar,
-    })
-    corner(fill, 5)
-    local knob = create("Frame", {
-        Name = "Knob", AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.fromOffset(16, 16), Position = UDim2.new(1, 0, 0.5, 0),
-        BackgroundColor3 = self.Theme.Text, BorderSizePixel = 0,
-        Active = true, ZIndex = 14, Parent = fill,
-    })
-    corner(knob, 8)
-    stroke(knob, self.Theme.Accent, 2, 0)
-
-    local value = math.clamp(tonumber(default) or min, min, max)
-    local dragging, activeTouch = false, nil
-    local function setValue(v, fire)
-        value = math.clamp(v, min, max)
-        local alpha = (value - min) / (max - min)
-        fill.Size = UDim2.new(alpha, 0, 1, 0)
-        valueLbl.Text = tostring(math.floor(value + 0.5))
-        if fire and callback then
-            local ok, err = pcall(callback, value)
-            if not ok then self:Notify("Error", tostring(err), NotificationType.Error, 4) end
-        end
-    end
-    local function updateFromX(x, fire)
-        if not bar.Parent then return end
-        local width = bar.AbsoluteSize.X
-        if width <= 0 then return end
-        local alpha = math.clamp((x - bar.AbsolutePosition.X) / width, 0, 1)
-        setValue(min + (max - min) * alpha, fire)
-        self._config[text] = value
-    end
-    local function beginDrag(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            updateFromX(input.Position.X, true)
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            dragging, activeTouch = true, input
-            updateFromX(input.Position.X, true)
-        end
-    end
-    bar.InputBegan:Connect(beginDrag)
-    fill.InputBegan:Connect(beginDrag)
-    knob.InputBegan:Connect(beginDrag)
-    local endConn = UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        elseif input == activeTouch then
-            dragging, activeTouch = false, nil
-        end
-    end)
-    local moveConn = UserInputService.InputChanged:Connect(function(input)
-        if not dragging then return end
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                updateFromX(input.Position.X, true)
-            else
-                dragging = false
-            end
-        end
-    end)
-    local touchMoveConn = UserInputService.TouchMoved:Connect(function(input)
-        if dragging and activeTouch then
-            updateFromX(input.Position.X, true)
-        end
-    end)
-    table.insert(self.Connections, endConn)
-    table.insert(self.Connections, moveConn)
-    table.insert(self.Connections, touchMoveConn)
-    setValue(value, false)
-
-    self.Widgets[text] = {
-        Type = "Slider",
-        Get = function() return value end,
-        Set = function(v) setValue(tonumber(v) or min, true) end,
-    }
-    return {
-        Set = function(_, v) setValue(tonumber(v) or min, true) end,
-        Get = function() return value end,
-    }
-end
-
-function NyxUI:AddDropdown(parent, text, options, default, callback)
-    local row = create("Frame", {
-        Name = "DropdownRow",
-        Size = UDim2.new(1, 0, 0, 32),
-        BackgroundTransparency = 1,
-        ZIndex = 12,
-        Parent = parent,
-        ClipsDescendants = false,
-    })
-
-    create("TextLabel", {
-        Text = text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Size = UDim2.new(0.5, 0, 1, 0),
-        ZIndex = 12,
-        Parent = row,
-    })
-
-    local btn = create("TextButton", {
-        Text = default or "اختر...",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = self.Theme.Text,
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        Size = UDim2.new(0.5, -8, 1, 0),
-        Position = UDim2.new(0.5, 8, 0, 0),
-        AutoButtonColor = false,
-        TextScaled = false,
-        ZIndex = 12,
-        Parent = row,
-    })
-    corner(btn, 8)
-
-    local listFrame = create("Frame", {
-        Name = "List",
-        Size = UDim2.new(0.5, -8, 0, 0),
-        Position = UDim2.new(0.5, 8, 1, 4),
-        BackgroundColor3 = self.Theme.Surface,
-        BorderSizePixel = 0,
-        Visible = false,
-        ZIndex = 50,
-        Parent = row,
-    })
-    corner(listFrame, 6)
-    stroke(listFrame, self.Theme.Stroke, 1, 0.2)
-    list(listFrame, Enum.FillDirection.Vertical, 2)
-    pad(listFrame, 4, 4, 4, 4)
-
-    local current = default
-    local open = false
-
-    for _, opt in ipairs(options) do
-        local optBtn = create("TextButton", {
-            Text = tostring(opt),
-            Font = Enum.Font.Gotham,
-            TextSize = 11,
-            TextColor3 = self.Theme.Text,
-            BackgroundColor3 = self.Theme.SurfaceAlt,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, 0, 0, 24),
-            AutoButtonColor = false,
-            TextScaled = false,
-            ZIndex = 51,
-            Parent = listFrame,
-        })
-        corner(optBtn, 4)
-        optBtn.MouseButton1Click:Connect(function()
-            current = opt
-            btn.Text = tostring(opt)
-            open = false
-            listFrame.Visible = false
-            listFrame.Size = UDim2.new(0.5, -8, 0, 0)
-            if callback then
-                local ok, err = pcall(callback, opt)
-                if not ok then
-                    self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
-                end
-            end
-            self._config[text] = opt
-        end)
-    end
-
-    local function refreshListSize()
-        listFrame.Size = UDim2.new(0.5, -8, 0, math.min(#options, 6) * 26 + 8)
-        for index, child in ipairs(listFrame:GetChildren()) do
-            if child:IsA("TextButton") then
-                child.Visible = index <= 6
-            end
-        end
-    end
-
-    btn.MouseButton1Click:Connect(function()
-        open = not open
-        listFrame.Visible = open
-        if open then refreshListSize() end
-    end)
-
-    self.Widgets[text] = {
-        Type = "Dropdown",
-        Get = function() return current end,
-        Set = function(v)
-            for _, opt in ipairs(options) do
-                if tostring(opt) == tostring(v) then
-                    current = opt
-                    btn.Text = tostring(opt)
-                    if callback then pcall(callback, opt) end
-                    return
-                end
-            end
-        end,
-    }
-
-    return {
-        Set = function(_, v)
-            for _, opt in ipairs(options) do
-                if tostring(opt) == tostring(v) then
-                    current = opt
-                    btn.Text = tostring(opt)
-                    if callback then pcall(callback, opt) end
-                    return
-                end
-            end
-        end,
-        Get = function() return current end,
-    }
-end
-
-function NyxUI:AddTextBox(parent, placeholder, default, callback)
-    local box = create("TextBox", {
-        Text = default or "",
-        PlaceholderText = placeholder or "...",
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        PlaceholderColor3 = self.Theme.TextDim,
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        ClearTextOnFocus = false,
-        TextScaled = false,
-        Size = UDim2.new(1, 0, 0, 28),
-        ZIndex = 12,
-        Parent = parent,
-    })
-    corner(box, 6)
-    box.FocusLost:Connect(function()
-        if callback then
-            local ok, err = pcall(callback, box.Text)
-            if not ok then
-                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
-            end
-        end
-    end)
-    return box
-end
-
-function NyxUI:AddColorPicker(parent, text, default, callback)
-    local row = create("Frame", {
-        Name = "ColorRow",
-        Size = UDim2.new(1, 0, 0, 28),
-        BackgroundTransparency = 1,
-        ZIndex = 12,
-        Parent = parent,
-    })
-
-    create("TextLabel", {
-        Text = text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Size = UDim2.new(1, -44, 1, 0),
-        ZIndex = 12,
-        Parent = row,
-    })
-
-    local swatch = create("TextButton", {
-        Text = "",
-        BackgroundColor3 = default or Color3.fromRGB(255, 255, 255),
-        BorderSizePixel = 0,
-        Size = UDim2.fromOffset(28, 20),
-        Position = UDim2.new(1, -28, 0.5, -10),
-        AutoButtonColor = false,
-        ZIndex = 12,
-        Parent = row,
-    })
-    corner(swatch, 6)
-
-    local current = default or Color3.fromRGB(255, 255, 255)
-    local picker = create("Frame", {
-        Name = "Picker",
-        Size = UDim2.fromOffset(170, 96),
-        Position = UDim2.new(1, -180, 0, 32),
-        BackgroundColor3 = self.Theme.Surface,
-        BorderSizePixel = 0,
-        Visible = false,
-        ZIndex = 60,
-        Parent = row,
-    })
-    corner(picker, 6)
-    stroke(picker, self.Theme.Stroke, 1, 0.2)
-    pad(picker, 8, 8, 8, 8)
-
-    local hueBar = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 14),
-        BackgroundColor3 = Color3.fromRGB(255, 0, 0),
-        BorderSizePixel = 0,
-        ZIndex = 61,
-        Parent = picker,
-    })
-    corner(hueBar, 3)
-    local hueFill = create("Frame", {
-        Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.5,
-        BorderSizePixel = 0,
-        ZIndex = 62,
-        Parent = hueBar,
-    })
-
-    local svBar = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 14),
-        Position = UDim2.fromOffset(0, 20),
-        BackgroundColor3 = current,
-        BorderSizePixel = 0,
-        ZIndex = 61,
-        Parent = picker,
-    })
-    corner(svBar, 3)
-
-    local hue = 0.75
-    local sat = 1
-    local val = 1
-    local function updateColor(fire)
-        current = Color3.fromHSV(hue, sat, val)
-        swatch.BackgroundColor3 = current
-        svBar.BackgroundColor3 = current
-        hueFill.Size = UDim2.new(hue, 0, 1, 0)
-        if fire and callback then
-            local ok, err = pcall(callback, current)
-            if not ok then
-                self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
-            end
-        end
-        self._config[text] = { current.R, current.G, current.B }
-    end
-
-    local hDrag = false
-    hueBar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            hDrag = true
-        end
-    end)
-    local hEnd = UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            hDrag = false
-        end
-    end)
-    local hMove = UserInputService.InputChanged:Connect(function(i)
-        if hDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local rel = (i.Position.X - hueBar.AbsolutePosition.X) / hueBar.AbsoluteSize.X
-            hue = math.clamp(rel, 0, 1)
-            updateColor(true)
-        end
-    end)
-    table.insert(self.Connections, hEnd)
-    table.insert(self.Connections, hMove)
-
-    local svDrag = false
-    svBar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            svDrag = true
-        end
-    end)
-    local svEnd = UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            svDrag = false
-        end
-    end)
-    local svMove = UserInputService.InputChanged:Connect(function(i)
-        if svDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local relX = (i.Position.X - svBar.AbsolutePosition.X) / svBar.AbsoluteSize.X
-            local relY = (i.Position.Y - svBar.AbsolutePosition.Y) / svBar.AbsoluteSize.Y
-            sat = math.clamp(relX, 0, 1)
-            val = math.clamp(1 - relY, 0, 1)
-            updateColor(true)
-        end
-    end)
-    table.insert(self.Connections, svEnd)
-    table.insert(self.Connections, svMove)
-
-    swatch.MouseButton1Click:Connect(function()
-        picker.Visible = not picker.Visible
-    end)
-
-    updateColor(false)
-
-    self.Widgets[text] = {
-        Type = "Color",
-        Get = function() return current end,
-        Set = function(c) current = c; updateColor(true) end,
-    }
-
-    return {
-        Set = function(_, c) current = c; updateColor(true) end,
-        Get = function() return current end,
-    }
-end
-
-function NyxUI:AddKeybind(parent, text, defaultKey, callback)
-    local row = create("Frame", {
-        Name = "KeybindRow",
-        Size = UDim2.new(1, 0, 0, 28),
-        BackgroundTransparency = 1,
-        ZIndex = 12,
-        Parent = parent,
-    })
-
-    create("TextLabel", {
-        Text = text,
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Size = UDim2.new(1, -84, 1, 0),
-        ZIndex = 12,
-        Parent = row,
-    })
-
-    local keyBtn = create("TextButton", {
-        Text = defaultKey and defaultKey.Name or "None",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = self.Theme.Text,
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        Size = UDim2.fromOffset(72, 24),
-        Position = UDim2.new(1, -72, 0.5, -12),
-        AutoButtonColor = false,
-        TextScaled = false,
-        ZIndex = 12,
-        Parent = row,
-    })
-    corner(keyBtn, 6)
-
-    local currentKey = defaultKey
-    local listening = false
-
-    keyBtn.MouseButton1Click:Connect(function()
-        listening = true
-        keyBtn.Text = "..."
-    end)
-
-    local conn = UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if listening then
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                currentKey = input.KeyCode
-                keyBtn.Text = input.KeyCode.Name
-                listening = false
-            end
-            return
-        end
-        if currentKey and input.KeyCode == currentKey then
-            if callback then
-                local ok, err = pcall(callback)
-                if not ok then
-                    self:Notify("خطأ", tostring(err), NotificationType.Error, 4)
-                end
-            end
-        end
-    end)
-    table.insert(self.Connections, conn)
-
-    self.Widgets[text] = {
-        Type = "Keybind",
-        Get = function() return currentKey end,
-    }
-
-    return {
-        Set = function(_, k)
-            currentKey = k
-            keyBtn.Text = k and k.Name or "None"
-        end,
-        Get = function() return currentKey end,
-    }
-end
-
-function NyxUI:_reflowNotifications()
-    local baseY = 16
-    local spacing = 8
-    local index = 0
-    for i = #self._notifications, 1, -1 do
-        local notif = self._notifications[i]
-        if notif.Frame and notif.Frame.Parent then
-            local targetY = baseY + index * (notif.Height + spacing)
-            quickTween(notif.Frame, {
-                Position = UDim2.new(1, -(IS_MOBILE and 232 or 290), 0, targetY),
-            }, 0.14)
-            index = index + 1
-        end
-    end
-end
-
-function NyxUI:Notify(title, message, notifType, duration)
-    notifType = notifType or NotificationType.Info
-    duration = duration or 3
-
-    local color = self.Theme.Info
-    if notifType == NotificationType.Success then color = self.Theme.Success
-    elseif notifType == NotificationType.Error then color = self.Theme.Error
-    elseif notifType == NotificationType.Warning then color = self.Theme.Warning
-    elseif notifType == NotificationType.Info then color = self.Theme.Info
-    end
-
-    local width = IS_MOBILE and 220 or 270
-
-    local notif = create("Frame", {
-        Name = "Notification",
-        Size = UDim2.fromOffset(width, 0),
-        Position = UDim2.new(1, 20, 0, 16),
-        BackgroundColor3 = self.Theme.Surface,
-        BorderSizePixel = 0,
-        AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 100,
-        Parent = self.Gui,
-    })
-    corner(notif, 8)
-    stroke(notif, color, 1, 0.25)
-    pad(notif, 10, 10, 12, 12)
-    list(notif, Enum.FillDirection.Vertical, 5)
-
-    local header = create("Frame", {
-        Name = "Header",
-        Size = UDim2.new(1, 0, 0, 18),
-        BackgroundTransparency = 1,
-        ZIndex = 101,
-        Parent = notif,
-    })
-
-    local dot = create("Frame", {
-        Name = "Dot",
-        Size = UDim2.fromOffset(8, 8),
-        Position = UDim2.new(0, 0, 0.5, -4),
-        BackgroundColor3 = color,
-        BorderSizePixel = 0,
-        ZIndex = 102,
-        Parent = header,
-    })
-    corner(dot, 4)
-
-    create("TextLabel", {
-        Text = title,
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = self.Theme.Text,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Position = UDim2.fromOffset(14, 0),
-        Size = UDim2.new(1, -14, 1, 0),
-        ZIndex = 102,
-        Parent = header,
-    })
-
-    create("TextLabel", {
-        Text = message,
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        TextWrapped = true,
-        TextScaled = false,
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
-        ZIndex = 102,
-        Parent = notif,
-    })
-
-    create("TextLabel", {
-        Text = "حقوق " .. RIGHTS,
-        Font = Enum.Font.Gotham,
-        TextSize = 9,
-        TextColor3 = self.Theme.TextDim,
-        BackgroundTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextYAlignment = Enum.TextYAlignment.Center,
-        TextScaled = false,
-        Size = UDim2.new(1, 0, 0, 10),
-        ZIndex = 102,
-        Parent = notif,
-    })
-
-    local progressBg = create("Frame", {
-        Name = "ProgressBg",
-        Size = UDim2.new(1, 0, 0, 3),
-        BackgroundColor3 = self.Theme.SurfaceAlt,
-        BorderSizePixel = 0,
-        ZIndex = 101,
-        Parent = notif,
-    })
-    corner(progressBg, 2)
-
-    local progressFill = create("Frame", {
-        Name = "ProgressFill",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = color,
-        BorderSizePixel = 0,
-        ZIndex = 102,
-        Parent = progressBg,
-    })
-    corner(progressFill, 2)
-
-    notif.Size = UDim2.fromOffset(width, 0)
-    local absHeight = notif.AbsoluteSize.Y
-    if absHeight <= 0 then
-        absHeight = 86
-    end
-
-    local entry = {
-        Frame = notif,
-        Height = absHeight,
-        Color = color,
-    }
-    self._notificationOrder = self._notificationOrder + 1
-    table.insert(self._notifications, entry)
-
-    self:_reflowNotifications()
-
-    quickTween(progressFill, { Size = UDim2.new(0, 0, 1, 0) }, duration)
-
-    task.delay(duration, function()
-        if notif and notif.Parent then
-            quickTween(notif, { Position = UDim2.new(1, 20, 0, notif.Position.Y.Offset) }, 0.12)
-            task.delay(0.14, function()
-                if notif and notif.Parent then
-                    notif:Destroy()
-                end
-                for i = #self._notifications, 1, -1 do
-                    if self._notifications[i].Frame == notif then
-                        table.remove(self._notifications, i)
-                    end
-                end
-                self:_reflowNotifications()
+        -- Element: Add Action Button
+        function TabElements:AddButton(title, callback)
+            local ActionBtn = Instance.new("TextButton", Page)
+            ActionBtn.Size = UDim2.new(1, -6, 0, IsTouchDevice and 36 or 40)
+            ActionBtn.BackgroundColor3 = Color3.fromRGB(124, 58, 237)
+            ActionBtn.Text = title
+            ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ActionBtn.Font = Enum.Font.GothamBold
+            ActionBtn.TextSize = IsTouchDevice and 9.5 or 11
+            Instance.new("UICorner", ActionBtn).CornerRadius = UDim.new(0, 8)
+
+            ActionBtn.MouseButton1Click:Connect(function()
+                if callback then callback() end
             end)
         end
-    end)
-end
 
-function NyxUI:NotifySuccess(title, message, duration)
-    self:Notify(title, message, NotificationType.Success, duration)
-end
-
-function NyxUI:NotifyError(title, message, duration)
-    self:Notify(title, message, NotificationType.Error, duration)
-end
-
-function NyxUI:NotifyWarning(title, message, duration)
-    self:Notify(title, message, NotificationType.Warning, duration)
-end
-
-function NyxUI:NotifyInfo(title, message, duration)
-    self:Notify(title, message, NotificationType.Info, duration)
-end
-
-function NyxUI:SetTheme(themeName)
-    if not Themes[themeName] then return end
-    self.ThemeName = themeName
-    self.Theme = Themes[themeName]
-    self:_applyTheme()
-end
-
-function NyxUI:_saveConfig()
-    if not writefile or not isfolder then return end
-    local ok, encoded = pcall(function()
-        return HttpService:JSONEncode(self._config or {})
-    end)
-    if not ok then return end
-    if not isfolder("MAX_UI") then
-        pcall(makefolder, "MAX_UI")
+        return TabElements
     end
-    pcall(writefile, "MAX_UI/" .. self.SaveName .. ".json", encoded)
+
+    return WindowHandler
 end
 
-function NyxUI:_loadConfig()
-    if not readfile or not isfile then return end
-    local path = "MAX_UI/" .. self.SaveName .. ".json"
-    if isfile(path) then
-        local ok, data = pcall(function()
-            return HttpService:JSONDecode(readfile(path))
-        end)
-        if ok and type(data) == "table" then
-            self._config = data
-        end
-    end
-end
-
-function NyxUI:Save()
-    self:_saveConfig()
-    self:NotifySuccess("MAX UI", "تم حفظ الإعدادات", 2)
-end
-
-function NyxUI:Load()
-    self:_loadConfig()
-    for name, widget in pairs(self.Widgets) do
-        local stored = self._config[name]
-        if stored ~= nil then
-            if widget.Type == "Toggle" and type(stored) == "boolean" then
-                widget.Set(stored)
-            elseif widget.Type == "Slider" and type(stored) == "number" then
-                widget.Set(stored)
-            elseif widget.Type == "Dropdown" then
-                widget.Set(stored)
-            elseif widget.Type == "Color" and type(stored) == "table" then
-                widget.Set(Color3.new(stored[1], stored[2], stored[3]))
-            end
-        end
-    end
-    self:NotifySuccess("MAX UI", "تم تحميل الإعدادات", 2)
-end
-
-function NyxUI:Destroy()
-    for _, conn in ipairs(self.Connections) do
-        if conn and conn.Disconnect then
-            pcall(function() conn:Disconnect() end)
-        end
-    end
-    self.Connections = {}
-    if self.Gui and self.Gui.Parent then
-        self.Gui:Destroy()
-    end
-end
-
--- استخدم require(ModuleScript) للحصول على المكتبة.
-return NyxUI
+return UILibrary
